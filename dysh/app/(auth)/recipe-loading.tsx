@@ -43,7 +43,9 @@ export default function RecipeLoading() {
 
     // Navigate after loading animation
     const timeout = setTimeout(() => {
-      router.push('/recipe');
+      //router.push('/recipe');
+      router.push('/(auth)/suggested-recipes');
+
     }, 2500);
 
     return () => clearTimeout(timeout);

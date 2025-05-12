@@ -49,7 +49,7 @@ export default function Onboarding() {
       // Handle Apple Sign In logic here
       console.log('Apple Sign In');
       // Navigate to dietary preferences
-      router.push('/(auth)/dietary-preferences');
+      router.push('/(auth)/testimonials');
     } catch (error) {
       console.error('Apple Sign In Error:', error);
     }
