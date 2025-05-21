@@ -37,7 +37,8 @@ export default function SuggestedRecipes() {
 
   const handleStartCooking = () => {
     setModalVisible(false);
-    router.push('/cooking-steps');
+    //router.push('/cooking-steps');
+    router.push('/explore');
   };
 
   // Handle cuisine selection with type safety
