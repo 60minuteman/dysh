@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchInput } from '../../components/SearchInput';
 import { CookbookTabs } from '../../components/cookbook/cookbook-tabs';
 import { CookbookRecipeCard } from '../../components/cookbook/cookbook-recipe-card';
 import { Ionicons } from '@expo/vector-icons';
-import { ApiService } from '../../services/api';
-import { authService } from '../../lib/auth';
+import { useCookbookRecipes } from '../../hooks/useApiQueries';
 import { useRouter } from 'expo-router';
 
 const RECIPES = [
@@ -30,54 +29,26 @@ export default function Cookbook() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [searchValue, setSearchValue] = useState('');
-  const [recipes, setRecipes] = useState(RECIPES);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Check authentication and fetch cookbook recipes
-  useEffect(() => {
-    const fetchCookbookRecipes = async () => {
-      try {
-        setLoading(true);
-        
-        // Check if user is authenticated
-        const isAuthenticated = await authService.isAuthenticated();
-        if (!isAuthenticated) {
-          router.replace('/(auth)/onboarding');
-          return;
-        }
+  // Use React Query hook for cookbook recipes
+  const {
+    data: cookbookData,
+    isLoading,
+    error,
+    isError
+  } = useCookbookRecipes(20, 0);
 
-        // Get token from auth service
-        const authHeaders = await authService.getAuthHeaders();
-        const token = authHeaders.Authorization?.replace('Bearer ', '') || '';
-        
-        if (!token) {
-          console.log('No token available for cookbook recipes');
-          return;
-        }
-
-        const response = await ApiService.getCookbookRecipes(token, 20, 0);
-        if (response.recipes.length > 0) {
-          // Transform API data to match local interface
-          const transformedRecipes = response.recipes.map(recipe => ({
-            id: recipe.id,
-            title: recipe.title,
-            duration: recipe.duration,
-            calories: recipe.calories,
-            image: { uri: recipe.imageUrl },
-          }));
-          setRecipes(transformedRecipes);
-        }
-      } catch (error) {
-        console.error('Error fetching cookbook recipes:', error);
-        // Keep fallback recipes if API fails
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCookbookRecipes();
-  }, []);
+  // Transform API data to match local interface or use fallback
+  const recipes = (cookbookData?.recipes && cookbookData.recipes.length > 0)
+    ? cookbookData.recipes.map((recipe: any) => ({
+        id: recipe.id,
+        title: recipe.title,
+        duration: recipe.duration,
+        calories: recipe.calories,
+        image: { uri: recipe.imageUrl },
+      }))
+    : RECIPES; // Fallback to local recipes if API data not available
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -102,6 +73,16 @@ export default function Cookbook() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading cookbook recipes...</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Failed to load recipes. Using saved recipes.</Text>
+          </View>
+        ) : null}
+        
         <View style={styles.grid}>
           {recipes.slice(0, 2).map((recipe) => (
             <View key={recipe.id} style={styles.cardWrapper}>
@@ -168,5 +149,24 @@ const styles = StyleSheet.create({
   proLine: {
     width: '80%',
     height: 100,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 14,
+    color: '#FF6B6B',
+    textAlign: 'center',
   },
 }); 

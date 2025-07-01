@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ImageBackground, Animated, Alert } from 'react-
 import LottieView from 'lottie-react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiService } from '../../lib/api';
+import { useGenerateRecipes } from '../../hooks/useApiQueries';
 
 export default function RecipeLoading() {
   const router = useRouter();
@@ -11,7 +11,7 @@ export default function RecipeLoading() {
   const params = useLocalSearchParams();
   const progress = useRef(new Animated.Value(0)).current;
   const lottieRef = useRef<LottieView>(null);
-  const [isGenerating, setIsGenerating] = useState(true);
+  const generateRecipesMutation = useGenerateRecipes();
 
   // Parse parameters
   const ingredients = params.ingredients ? JSON.parse(params.ingredients as string) : [];
@@ -53,63 +53,61 @@ export default function RecipeLoading() {
   }, []);
 
   const generateRecipe = async () => {
-    try {
-      setIsGenerating(true);
-      
-      if (!ingredients || ingredients.length === 0) {
-        throw new Error('No ingredients provided');
-      }
-
-      console.log('Generating recipe with ingredients:', ingredients);
-      
-      const result = await apiService.generateRecipes({
-        ingredients: ingredients,
-        servings: parseInt(servings),
-      });
-
-      console.log('Recipe generation result:', result);
-
-      // Navigate to suggested recipes with the first meal from the response
-      const firstMeal = result.meals[0];
-      const recipeData = {
-        title: firstMeal.name,
-        image: firstMeal.image,
-        duration: firstMeal.estimatedCookTime,
-        calories: firstMeal.calories,
-        rating: firstMeal.rating.toString(),
-        ingredients: firstMeal.ingredients,
-        instructions: firstMeal.instructions,
-        proTips: firstMeal.proTips,
-        provider: result.provider,
-        location: result.location
-      };
-
-      const params = new URLSearchParams();
-      params.set('recipeData', JSON.stringify(recipeData));
-      params.set('ingredients', JSON.stringify(ingredients));
-      params.set('servings', servings);
-
-      router.replace(`/suggested-recipes?${params.toString()}`);
-    } catch (error: any) {
-      console.error('Recipe generation error:', error);
-      Alert.alert(
-        'Recipe Generation Failed',
-        error.message || 'Unable to generate recipes. Please try again.',
-        [
-          {
-            text: 'Try Again',
-            onPress: () => generateRecipe(),
-          },
-          {
-            text: 'Go Back',
-            onPress: () => router.back(),
-            style: 'cancel',
-          },
-        ]
-      );
-    } finally {
-      setIsGenerating(false);
+    if (!ingredients || ingredients.length === 0) {
+      Alert.alert('Error', 'No ingredients provided');
+      return;
     }
+
+    console.log('Generating recipe with ingredients:', ingredients);
+    
+    generateRecipesMutation.mutate({
+      ingredients: ingredients,
+      servings: parseInt(servings),
+    }, {
+      onSuccess: (result) => {
+        console.log('Recipe generation result:', result);
+
+        // Navigate to suggested recipes with the first meal from the response
+        const firstMeal = result.meals[0];
+        const recipeData = {
+          title: firstMeal.name,
+          image: firstMeal.image,
+          duration: firstMeal.estimatedCookTime,
+          calories: firstMeal.calories,
+          rating: firstMeal.rating.toString(),
+          ingredients: firstMeal.ingredients,
+          instructions: firstMeal.instructions,
+          proTips: firstMeal.proTips,
+          provider: result.provider,
+          location: result.location
+        };
+
+        const params = new URLSearchParams();
+        params.set('recipeData', JSON.stringify(recipeData));
+        params.set('ingredients', JSON.stringify(ingredients));
+        params.set('servings', servings);
+
+        router.replace(`/suggested-recipes?${params.toString()}`);
+      },
+      onError: (error: any) => {
+        console.error('Recipe generation error:', error);
+        Alert.alert(
+          'Recipe Generation Failed',
+          error.message || 'Unable to generate recipes. Please try again.',
+          [
+            {
+              text: 'Try Again',
+              onPress: () => generateRecipe(),
+            },
+            {
+              text: 'Go Back',
+              onPress: () => router.back(),
+              style: 'cancel',
+            },
+          ]
+        );
+      }
+    });
   };
 
   const width = progress.interpolate({

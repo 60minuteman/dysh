@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, useWindowDimensions } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
@@ -7,6 +7,17 @@ import { Button } from '../../components/Button';
 export default function Paywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+
+  // Responsive font sizing based on screen dimensions
+  const isTablet = width >= 768;
+  const isSmallScreen = width < 375;
+  
+  const featureFontSize = isTablet ? 18 : isSmallScreen ? 12 : 16;
+  const emojiSize = isTablet ? 24 : isSmallScreen ? 16 : 20;
+  const emojiWidth = isTablet ? 32 : isSmallScreen ? 24 : 28;
+  const featureSpacing = isTablet ? 24 : isSmallScreen ? 16 : 20;
+  const horizontalPadding = isTablet ? 48 : isSmallScreen ? 24 : 32;
 
   return (
     <View style={styles.container}>
@@ -30,7 +41,7 @@ export default function Paywall() {
       </View>
 
       {/* Content section */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
         {/* Logo */}
         <View style={styles.logoContainer}>
           <Image 
@@ -44,49 +55,49 @@ export default function Paywall() {
         <Text style={styles.title}>Smarter Cooking,{'\n'}Better Meals!</Text>
 
         {/* Features */}
-        <View style={styles.features}>
-          <View style={styles.featureRow}>
-            <Image source={require('../../assets/icons/cherry.png')} style={styles.featureIcon} />
-            <Text style={styles.featureText}>
-              Get personalized recipes based on the{'\n'}ingredients in your kitchen.
+        <View style={[styles.features, { paddingHorizontal: horizontalPadding }]}>
+          <View style={[styles.featureRow, { marginBottom: featureSpacing }]}>
+            <Text style={[styles.emoji, { fontSize: emojiSize, width: emojiWidth }]}>🧺</Text>
+            <Text style={[styles.featureText, { fontSize: featureFontSize }]}>
+              Get personalized recipes based on the ingredients in your kitchen.
             </Text>
           </View>
 
-          <View style={styles.featureRow}>
-            <Image source={require('../../assets/icons/search.png')} style={styles.featureIcon} />
-            <Text style={styles.featureText}>
-              Enjoy fresh daily meal ideas across African,{'\n'}Asian, and global cuisines.
+          <View style={[styles.featureRow, { marginBottom: featureSpacing }]}>
+            <Text style={[styles.emoji, { fontSize: emojiSize, width: emojiWidth }]}>🍽️</Text>
+            <Text style={[styles.featureText, { fontSize: featureFontSize }]}>
+              Enjoy fresh daily meal ideas across African, Asian, and global cuisines.
             </Text>
           </View>
 
-          <View style={styles.featureRow}>
-            <Image source={require('../../assets/icons/book.png')} style={styles.featureIcon} />
-            <Text style={styles.featureText}>
-              Follow clear step-by-step guides that make{'\n'}cooking effortless.
+          <View style={[styles.featureRow, { marginBottom: featureSpacing }]}>
+            <Text style={[styles.emoji, { fontSize: emojiSize, width: emojiWidth }]}>👩‍🍳</Text>
+            <Text style={[styles.featureText, { fontSize: featureFontSize }]}>
+              Follow clear step-by-step guides that make cooking effortless.
             </Text>
           </View>
 
-          <View style={styles.featureRow}>
-            <Text style={styles.fireIcon}>🔥</Text>
-            <Text style={styles.featureText}>
-              See detailed calorie info for every recipe to{'\n'}eat smarter.
+          <View style={[styles.featureRow, { marginBottom: featureSpacing }]}>
+            <Text style={[styles.emoji, { fontSize: emojiSize, width: emojiWidth }]}>🔥</Text>
+            <Text style={[styles.featureText, { fontSize: featureFontSize }]}>
+              See detailed calorie info for every recipe to eat smarter.
             </Text>
           </View>
 
-          <View style={styles.featureRow}>
-            <Image source={require('../../assets/icons/plus.png')} style={styles.featureIcon} />
-            <Text style={styles.featureText}>
-              Get smart shopping suggestions so you{'\n'}never run out of what you need.
+          <View style={[styles.featureRow, { marginBottom: featureSpacing }]}>
+            <Text style={[styles.emoji, { fontSize: emojiSize, width: emojiWidth }]}>🛒</Text>
+            <Text style={[styles.featureText, { fontSize: featureFontSize }]}>
+              Get smart shopping suggestions so you never run out of what you need.
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </View>
 
       {/* Bottom section */}
       <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 20 }]}>
         <Button 
           label="Continue"
-          onPress={() => router.push('/(tabs)')}
+          onPress={() => router.push('/(tabs)/explore')}
         />
         
         <Text style={styles.planText}>
@@ -113,12 +124,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   topSection: {
-    height: 200,
+    height: 190,
     position: 'relative',
   },
   topImage: {
     width: '100%',
     height: '100%',
+    position: 'absolute',
   },
   closeButton: {
     position: 'absolute',
@@ -146,46 +158,35 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'flex-start',
     paddingHorizontal: 32,
-    marginTop: 32,
+    marginTop: 22,
   },
   logo: {
-    height: 24,
-    width: 60,
+    height: 42,
+    width: 74,
   },
   title: {
     fontSize: 34,
     fontFamily: 'Satoshi-Black',
     color: '#000000',
     paddingHorizontal: 32,
-    marginTop: 24,
+    marginTop: 14,
     lineHeight: 40,
   },
   features: {
-    paddingHorizontal: 32,
-    marginTop: 32,
+    marginTop: 22,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 24,
   },
-  featureIcon: {
-    width: 20,
-    height: 20,
+  emoji: {
     marginRight: 16,
     marginTop: 2,
-    tintColor: '#666666',
-  },
-  fireIcon: {
-    fontSize: 20,
-    marginRight: 16,
-    marginTop: 2,
-    width: 20,
     textAlign: 'center',
   },
   featureText: {
     fontSize: 14,
-    fontFamily: 'Satoshi-Medium',
+    fontFamily: 'Satoshi-Regular',
     color: '#000000',
     lineHeight: 22,
     flex: 1,
@@ -193,10 +194,11 @@ const styles = StyleSheet.create({
   bottomSection: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 32,
-    paddingTop: 20,
+    paddingTop: 10,
+    marginBottom: -8,
   },
   planText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: 'Satoshi-Medium',
     color: '#999999',
     textAlign: 'center',

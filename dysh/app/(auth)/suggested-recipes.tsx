@@ -6,9 +6,9 @@ import { CuisineTab } from '../../components/CuisineTab';
 import { RecipePreviewCard } from '../../components/RecipePreviewCard';
 import { RecipePreviewContainer } from '../../components/RecipePreviewContainer';
 import { RecipeModal } from '../../components/RecipeModal';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Stack } from 'expo-router';
-import { apiService } from '../../lib/api';
+import { useGenerateRecipes } from '../../hooks/useApiQueries';
 
 const cuisines = ["Nigerian", "American", "Arab", "Spanish", "Korean"];
 type Cuisine = "Nigerian" | "American" | "Arab" | "Spanish" | "Korean";
@@ -42,11 +42,11 @@ export default function SuggestedRecipes() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const generateRecipesMutation = useGenerateRecipes();
   const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>("Nigerian");
   const screenWidth = Dimensions.get('window').width;
   const [modalVisible, setModalVisible] = useState(false);
   const [focusedRecipeIndex, setFocusedRecipeIndex] = useState(0); // Track focused card based on scroll
-  const [isLoading, setIsLoading] = useState(false);
   const [cachedRecipes, setCachedRecipes] = useState<CachedRecipes>({});
 
   // Parse parameters from recipe generation using useMemo to prevent re-parsing
@@ -139,39 +139,32 @@ export default function SuggestedRecipes() {
     console.log(`🔄 Cache miss for ${country}, generating new recipes...`);
     console.log(`📦 Current cache keys:`, Object.keys(cachedRecipes));
     
-    setIsLoading(true);
-    
-    try {
-      console.log(`🚀 Generating recipes for ${country}...`);
-      
-      const result = await apiService.generateRecipes({
-        ingredients: ingredients,
-        servings: parseInt(servings),
-        country: country
-      });
+    generateRecipesMutation.mutate({
+      ingredients: ingredients,
+      country: country
+    }, {
+      onSuccess: (result: any) => {
+        console.log(`✅ Recipes generated for ${country}:`, {
+          mealsCount: result.meals.length,
+          location: result.location,
+          provider: result.provider
+        });
 
-      console.log(`✅ Recipes generated for ${country}:`, {
-        mealsCount: result.meals.length,
-        location: result.location,
-        provider: result.provider
-      });
-
-      // Cache the results
-      setCachedRecipes(prev => {
-        const newCache = {
-          ...prev,
-          [country]: result
-        };
-        console.log(`💾 Updated cache keys:`, Object.keys(newCache));
-        return newCache;
-      });
-
-    } catch (error: any) {
-      console.error(`❌ Failed to generate recipes for ${country}:`, error);
-      // You might want to show an error toast here
-    } finally {
-      setIsLoading(false);
-    }
+        // Cache the results
+        setCachedRecipes(prev => {
+          const newCache = {
+            ...prev,
+            [country]: result
+          };
+          console.log(`💾 Updated cache keys:`, Object.keys(newCache));
+          return newCache;
+        });
+      },
+      onError: (error: any) => {
+        console.error(`❌ Failed to generate recipes for ${country}:`, error);
+        // You might want to show an error toast here
+      }
+    });
   };
 
   // Handle cuisine selection
@@ -288,7 +281,7 @@ export default function SuggestedRecipes() {
 
         {/* Recipe Preview Cards Container or Loading */}
         <View style={styles.recipeCardContainer}>
-          {isLoading ? (
+          {generateRecipesMutation.isPending ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#64D61D" />
               <Text style={styles.loadingText}>Loading {selectedCuisine} recipes...</Text>

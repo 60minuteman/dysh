@@ -5,12 +5,13 @@ import { ExploreTabs } from '../../components/explore/explore-tabs';
 import { RecipeStack, RecipeStackRef } from '../../components/explore/recipe-stack';
 import { authService } from '../../lib/auth';
 import { useRouter } from 'expo-router';
+import type { ExploreCategory } from '../../services/api';
 
 export default function Explore() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const stackRef = useRef<RecipeStackRef>(null);
-  const [selectedCategory, setSelectedCategory] = useState('thirty-min-meals');
+  const [selectedCategory, setSelectedCategory] = useState<ExploreCategory>('thirty-min-meals');
   const router = useRouter();
 
   // Debug category changes
@@ -19,6 +20,10 @@ export default function Explore() {
   }, [selectedCategory]);
 
   // Note: Explore screen allows guest browsing - no auth required
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category as ExploreCategory);
+  };
 
   const handleUndo = () => {
     stackRef.current?.goBackFromLeft();
@@ -37,7 +42,7 @@ export default function Explore() {
       </View>
 
       <View style={styles.tabsContainer}>
-        <ExploreTabs onTabChange={setSelectedCategory} />
+        <ExploreTabs onTabChange={handleCategoryChange} />
       </View>
       
       <View style={{ height: height * 0.7, width: width }}>
