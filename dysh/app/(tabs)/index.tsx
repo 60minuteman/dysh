@@ -1,18 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, ImageBackground, Text, Dimensions, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { authService } from '../../lib/auth';
+import { ApiService } from '../../services/api';
 import { Header } from '../../components/home/Header';
-import { Pill } from '../../components/ui/Pill';
 import { RecipeSection } from '../../components/home/RecipeSection';
 import { SmallRecipeContainer } from '../../components/home/SmallRecipeContainer';
 import { RecipeModal } from '../../components/RecipeModal';
-import { SkeletonSection } from '../../components/ui/SkeletonLoader';
-import { ApiService, UserProfile, NextMeal } from '../../services/api';
-import { authService } from '../../lib/auth';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+// React Query hooks
+import {
+  useExternalUserProfile,
+  useCuisinePreferences,
+  useNextMeal,
+  useBreakfastRecipes,
+  useBreakfastLowCarbRecipes,
+  useBreakfastHighProteinRecipes,
+  useLunchRecipes,
+  useLunchLowCarbRecipes,
+  useLunchHighProteinRecipes,
+  useDinnerRecipes,
+  useDinnerLowCarbRecipes,
+  useDinnerHighProteinRecipes,
+  useLowCarbRecipes,
+  useHighProteinRecipes,
+  useAddCuisinePreference,
+  useRemoveCuisinePreference,
+} from '../../hooks/useApiQueries';
 
-// Local Recipe interface that matches what components expect
 interface Recipe {
   id: string;
   title: string;
@@ -25,243 +41,110 @@ interface Recipe {
   proTips?: string[];
 }
 
-// Cache interface for storing all recipe data
-interface RecipeCache {
-  breakfast: Recipe[];
-  breakfastLowCarb: Recipe[];
-  breakfastHighProtein: Recipe[];
-  lunch: Recipe[];
-  lunchLowCarb: Recipe[];
-  lunchHighProtein: Recipe[];
-  dinner: Recipe[];
-  dinnerLowCarb: Recipe[];
-  dinnerHighProtein: Recipe[];
-  lowCarb: Recipe[];
-  highProtein: Recipe[];
-}
-
 export default function Home() {
   const router = useRouter();
-  
-  // Function to determine current meal time based on hour
-  const getCurrentMealTime = (): 'breakfast' | 'lunch' | 'dinner' => {
-    const currentHour = new Date().getHours();
-    
-    if (currentHour >= 6 && currentHour < 11) {
-      return 'breakfast';
-    } else if (currentHour >= 11 && currentHour < 17) {
-      return 'lunch';
-    } else {
-      return 'dinner'; // 5 PM - 6 AM next day
-    }
-  };
-  
-  // State for all API data
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [cuisinePreferences, setCuisinePreferences] = useState<string[]>([]);
-  const [nextMeal, setNextMeal] = useState<NextMeal | null>(null);
-  const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner'>(() => getCurrentMealTime());
-  const [recipeCache, setRecipeCache] = useState<RecipeCache>({
-    breakfast: [],
-    breakfastLowCarb: [],
-    breakfastHighProtein: [],
-    lunch: [],
-    lunchLowCarb: [],
-    lunchHighProtein: [],
-    dinner: [],
-    dinnerLowCarb: [],
-    dinnerHighProtein: [],
-    lowCarb: [],
-    highProtein: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [recipesLoading, setRecipesLoading] = useState(false);
+  const insets = useSafeAreaInsets();
+  const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const mealTimeInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // React Query hooks
+  const userProfileQuery = useExternalUserProfile();
+  const cuisinePreferencesQuery = useCuisinePreferences();
+  const nextMealQuery = useNextMeal();
   
-  // Background fetch interval ref
-  const backgroundFetchInterval = useRef<number | null>(null);
-  const mealTimeInterval = useRef<number | null>(null);
+  // Recipe queries
+  const breakfastQuery = useBreakfastRecipes(5);
+  const breakfastLowCarbQuery = useBreakfastLowCarbRecipes(5);
+  const breakfastHighProteinQuery = useBreakfastHighProteinRecipes(5);
+  const lunchQuery = useLunchRecipes(5);
+  const lunchLowCarbQuery = useLunchLowCarbRecipes(5);
+  const lunchHighProteinQuery = useLunchHighProteinRecipes(5);
+  const dinnerQuery = useDinnerRecipes(5);
+  const dinnerLowCarbQuery = useDinnerLowCarbRecipes(5);
+  const dinnerHighProteinQuery = useDinnerHighProteinRecipes(5);
+  const lowCarbQuery = useLowCarbRecipes(5);
+  const highProteinQuery = useHighProteinRecipes(5);
 
-  // Load all data on component mount
-  useEffect(() => {
-    loadInitialData();
+  // Mutations
+  const addCuisineMutation = useAddCuisinePreference();
+  const removeCuisineMutation = useRemoveCuisinePreference();
+
+  // Helper function to get current meal time
+  const getCurrentMealTime = (): 'breakfast' | 'lunch' | 'dinner' => {
+    const now = new Date();
+    const hour = now.getHours();
     
-    // Set up background refresh every 1 minute
-    backgroundFetchInterval.current = setInterval(() => {
-      loadAllRecipes();
-    }, 60000); // 1 minute
+    if (hour >= 5 && hour < 11) {
+      return 'breakfast';
+    } else if (hour >= 11 && hour < 17) {
+      return 'lunch';
+    } else {
+      return 'dinner';
+    }
+  };
 
-    // Set up meal time checking every 5 minutes
+  // Check authentication and redirect if needed
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const currentUser = await authService.getCurrentUser();
+        if (!currentUser) {
+          router.replace('/(auth)/onboarding');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        router.replace('/(auth)/onboarding');
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Set initial meal type based on current time
+  useEffect(() => {
+    setSelectedMealType(getCurrentMealTime());
+    
+    // Set up interval to automatically update meal type every hour
     mealTimeInterval.current = setInterval(() => {
-      const currentMealTime = getCurrentMealTime();
-      if (currentMealTime !== selectedMealType) {
-        setSelectedMealType(currentMealTime);
-      }
-    }, 300000); // 5 minutes
+      setSelectedMealType(getCurrentMealTime());
+    }, 60 * 60 * 1000); // Update every hour
 
-    // Cleanup intervals on unmount
     return () => {
-      if (backgroundFetchInterval.current) {
-        clearInterval(backgroundFetchInterval.current);
-      }
       if (mealTimeInterval.current) {
         clearInterval(mealTimeInterval.current);
       }
     };
-  }, [selectedMealType]);
+  }, []);
 
-  const loadInitialData = async () => {
-    try {
-      setLoading(true);
-      
-      // Check if user is authenticated
-      const isAuthenticated = await authService.isAuthenticated();
-      if (!isAuthenticated) {
-        // User not authenticated, redirect to onboarding
-        router.replace('/(auth)/onboarding');
-        return;
-      }
-
-      // Get auth headers for API calls
-      const authHeaders = await authService.getAuthHeaders();
-      const token = authHeaders.Authorization?.replace('Bearer ', '') || '';
-      
-      if (!token) {
-        // No valid token, redirect to onboarding
-        router.replace('/(auth)/onboarding');
-        return;
-      }
-
-      // Load user data first
-      const [
-        profileData,
-        preferencesData,
-        mealData
-      ] = await Promise.all([
-        ApiService.getUserProfile(token),
-        ApiService.getCuisinePreferences(token),
-        ApiService.getNextMeal(token)
-      ]);
-
-      setUserProfile(profileData);
-      setCuisinePreferences(preferencesData.preferences);
-      setNextMeal(mealData);
-      
-      // Load initial recipes
-      await loadAllRecipes(token);
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-      Alert.alert('Error', 'Failed to load data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  // Transform recipes helper
+  const transformRecipes = (recipes: any[] | undefined): Recipe[] => {
+    if (!recipes) return [];
+    return recipes.map(recipe => ({
+      ...recipe,
+      image: { uri: recipe.imageUrl }
+    }));
   };
 
-  const loadAllRecipes = async (token?: string) => {
-    try {
-      setRecipesLoading(true);
-      
-      // If no token provided, try to get it from auth service
-      if (!token) {
-        const authHeaders = await authService.getAuthHeaders();
-        token = authHeaders.Authorization?.replace('Bearer ', '') || '';
+  // Handle cuisine preference mutations
+  const handleAddCuisine = (cuisine: string) => {
+    addCuisineMutation.mutate(cuisine, {
+      onError: (error: any) => {
+        console.error('Error adding cuisine:', error);
+        Alert.alert('Error', 'Failed to add cuisine preference.');
       }
-      
-      if (!token) {
-        console.log('No token available for loading recipes');
-        return;
-      }
-      
-      // Load all recipe endpoints in parallel
-      const [
-        breakfastData,
-        breakfastLowCarbData,
-        breakfastHighProteinData,
-        lunchData,
-        lunchLowCarbData,
-        lunchHighProteinData,
-        dinnerData,
-        dinnerLowCarbData,
-        dinnerHighProteinData,
-        lowCarbData,
-        highProteinData
-      ] = await Promise.all([
-        ApiService.getBreakfastRecipes(token, 5),
-        ApiService.getBreakfastLowCarbRecipes(token, 5),
-        ApiService.getBreakfastHighProteinRecipes(token, 5),
-        ApiService.getLunchRecipes(token, 5),
-        ApiService.getLunchLowCarbRecipes(token, 5),
-        ApiService.getLunchHighProteinRecipes(token, 5),
-        ApiService.getDinnerRecipes(token, 5),
-        ApiService.getDinnerLowCarbRecipes(token, 5),
-        ApiService.getDinnerHighProteinRecipes(token, 5),
-        ApiService.getLowCarbRecipes(token, 5),
-        ApiService.getHighProteinRecipes(token, 5)
-      ]);
-
-      // Transform all recipe data and update cache
-      const transformRecipes = (recipes: any[]) => 
-        recipes.map(recipe => ({
-          ...recipe,
-          image: { uri: recipe.imageUrl }
-        }));
-
-      setRecipeCache({
-        breakfast: transformRecipes(breakfastData.recipes),
-        breakfastLowCarb: transformRecipes(breakfastLowCarbData.recipes),
-        breakfastHighProtein: transformRecipes(breakfastHighProteinData.recipes),
-        lunch: transformRecipes(lunchData.recipes),
-        lunchLowCarb: transformRecipes(lunchLowCarbData.recipes),
-        lunchHighProtein: transformRecipes(lunchHighProteinData.recipes),
-        dinner: transformRecipes(dinnerData.recipes),
-        dinnerLowCarb: transformRecipes(dinnerLowCarbData.recipes),
-        dinnerHighProtein: transformRecipes(dinnerHighProteinData.recipes),
-        lowCarb: transformRecipes(lowCarbData.recipes),
-        highProtein: transformRecipes(highProteinData.recipes)
-      });
-    } catch (error) {
-      console.error('Error loading recipes:', error);
-      Alert.alert('Error', 'Failed to load recipes. Please try again.');
-    } finally {
-      setRecipesLoading(false);
-    }
+    });
   };
 
-  const handleAddCuisine = async (cuisine: string) => {
-    try {
-      const authHeaders = await authService.getAuthHeaders();
-      const token = authHeaders.Authorization?.replace('Bearer ', '') || '';
-      
-      if (!token) {
-        Alert.alert('Error', 'Please sign in to add cuisine preferences.');
-        return;
+  const handleRemoveCuisine = (cuisine: string) => {
+    removeCuisineMutation.mutate(cuisine, {
+      onError: (error: any) => {
+        console.error('Error removing cuisine:', error);
+        Alert.alert('Error', 'Failed to remove cuisine preference.');
       }
-
-      const result = await ApiService.addCuisinePreference(token, cuisine);
-      setCuisinePreferences(result.preferences);
-    } catch (error) {
-      console.error('Error adding cuisine:', error);
-      Alert.alert('Error', 'Failed to add cuisine preference.');
-    }
-  };
-
-  const handleRemoveCuisine = async (cuisine: string) => {
-    try {
-      const authHeaders = await authService.getAuthHeaders();
-      const token = authHeaders.Authorization?.replace('Bearer ', '') || '';
-      
-      if (!token) {
-        Alert.alert('Error', 'Please sign in to remove cuisine preferences.');
-        return;
-      }
-
-      const result = await ApiService.removeCuisinePreference(token, cuisine);
-      setCuisinePreferences(result.preferences);
-    } catch (error) {
-      console.error('Error removing cuisine:', error);
-      Alert.alert('Error', 'Failed to remove cuisine preference.');
-    }
+    });
   };
 
   const handleUpgrade = () => {
@@ -321,129 +204,136 @@ export default function Home() {
   };
 
   // Helper functions to get current meal recipes
-  const getCurrentMealRecipes = () => {
-    return recipeCache[selectedMealType] || [];
+  const getCurrentMealRecipes = (): Recipe[] => {
+    switch (selectedMealType) {
+      case 'breakfast':
+        return transformRecipes(breakfastQuery.data?.recipes);
+      case 'lunch':
+        return transformRecipes(lunchQuery.data?.recipes);
+      case 'dinner':
+        return transformRecipes(dinnerQuery.data?.recipes);
+      default:
+        return [];
+    }
   };
 
-  const getCurrentLowCarbRecipes = () => {
-    if (selectedMealType === 'breakfast') return recipeCache.breakfastLowCarb;
-    if (selectedMealType === 'lunch') return recipeCache.lunchLowCarb;
-    if (selectedMealType === 'dinner') return recipeCache.dinnerLowCarb;
-    return recipeCache.lowCarb;
+  const getCurrentLowCarbRecipes = (): Recipe[] => {
+    switch (selectedMealType) {
+      case 'breakfast':
+        return transformRecipes(breakfastLowCarbQuery.data?.recipes);
+      case 'lunch':
+        return transformRecipes(lunchLowCarbQuery.data?.recipes);
+      case 'dinner':
+        return transformRecipes(dinnerLowCarbQuery.data?.recipes);
+      default:
+        return transformRecipes(lowCarbQuery.data?.recipes);
+    }
   };
 
-  const getCurrentHighProteinRecipes = () => {
-    if (selectedMealType === 'breakfast') return recipeCache.breakfastHighProtein;
-    if (selectedMealType === 'lunch') return recipeCache.lunchHighProtein;
-    if (selectedMealType === 'dinner') return recipeCache.dinnerHighProtein;
-    return recipeCache.highProtein;
+  const getCurrentHighProteinRecipes = (): Recipe[] => {
+    switch (selectedMealType) {
+      case 'breakfast':
+        return transformRecipes(breakfastHighProteinQuery.data?.recipes);
+      case 'lunch':
+        return transformRecipes(lunchHighProteinQuery.data?.recipes);
+      case 'dinner':
+        return transformRecipes(dinnerHighProteinQuery.data?.recipes);
+      default:
+        return transformRecipes(highProteinQuery.data?.recipes);
+    }
   };
 
-  if (loading) {
-    return (
-      <ImageBackground 
-        source={require('../../assets/images/Home-bg.png')}
-        style={styles.container}
-        resizeMode="cover"
-      >
-        <Header isPro={false} />
-        
-        <ScrollView 
-          style={styles.content}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.paddedContent}>
-            {/* Skeleton for cuisine pills */}
-            <View style={styles.pillsRow}>
-              <View style={[styles.skeletonPill, { width: 80 }]} />
-              <View style={[styles.skeletonPill, { width: 100 }]} />
-              <View style={[styles.skeletonPill, { width: 60 }]} />
-              <View style={[styles.skeletonPill, { width: 70 }]} />
-            </View>
-          </View>
+  // Check if any critical queries are loading
+  const isLoading = userProfileQuery.isLoading || 
+                   cuisinePreferencesQuery.isLoading || 
+                   nextMealQuery.isLoading ||
+                   breakfastQuery.isLoading ||
+                   lunchQuery.isLoading ||
+                   dinnerQuery.isLoading;
 
-          <SkeletonSection count={3} variant="large" />
-          <SkeletonSection count={3} variant="small" />
-          <SkeletonSection count={3} variant="small" />
-        </ScrollView>
-      </ImageBackground>
-    );
-  }
+  // Check if recipes are loading
+  const areRecipesLoading = breakfastQuery.isLoading ||
+                           breakfastLowCarbQuery.isLoading ||
+                           breakfastHighProteinQuery.isLoading ||
+                           lunchQuery.isLoading ||
+                           lunchLowCarbQuery.isLoading ||
+                           lunchHighProteinQuery.isLoading ||
+                           dinnerQuery.isLoading ||
+                           dinnerLowCarbQuery.isLoading ||
+                           dinnerHighProteinQuery.isLoading ||
+                           lowCarbQuery.isLoading ||
+                           highProteinQuery.isLoading;
+
+  // Handle refresh
+  const handleRefresh = () => {
+    // React Query will handle the refetching automatically
+    userProfileQuery.refetch();
+    cuisinePreferencesQuery.refetch();
+    nextMealQuery.refetch();
+    breakfastQuery.refetch();
+    breakfastLowCarbQuery.refetch();
+    breakfastHighProteinQuery.refetch();
+    lunchQuery.refetch();
+    lunchLowCarbQuery.refetch();
+    lunchHighProteinQuery.refetch();
+    dinnerQuery.refetch();
+    dinnerLowCarbQuery.refetch();
+    dinnerHighProteinQuery.refetch();
+    lowCarbQuery.refetch();
+    highProteinQuery.refetch();
+  };
+
+  const isRefreshing = userProfileQuery.isFetching ||
+                      cuisinePreferencesQuery.isFetching ||
+                      nextMealQuery.isFetching ||
+                      areRecipesLoading;
 
   return (
-    <ImageBackground 
-      source={require('../../assets/images/Home-bg.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <Header isPro={userProfile?.isPro ?? false} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <Stack.Screen options={{ headerShown: false }} />
       
+      <Header isPro={userProfileQuery.data?.isPro ?? false} />
+
       <ScrollView 
         style={styles.content}
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="#64D61D"
+          />
+        }
       >
-        <View style={styles.paddedContent}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillsRow}
-          >
-            {/* Dynamic cuisine preferences */}
-            {cuisinePreferences.map(cuisine => (
-              <Pill 
-                key={cuisine} 
-                label={cuisine} 
-                onPress={() => handleRemoveCuisine(cuisine)}
-              />
-            ))}
-            <Pill 
-              label="Add" 
-              icon="add" 
-              onPress={() => handleAddCuisine('italian')} // For now, adds italian - you can improve this later
-            />
-          </ScrollView>
-        </View>
+        {/* Main Meal Section */}
+        <RecipeSection
+          title={selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)}
+          timer={nextMealQuery.data?.displayText ?? "Loading..."}
+          recipes={getCurrentMealRecipes()}
+          isPro={userProfileQuery.data?.isPro ?? false}
+          onUpgrade={handleUpgrade}
+          onRecipePress={handleRecipePress}
+          onMealTypeSelect={handleMealTypeSelect}
+        />
 
-        <View style={[styles.section, { marginBottom: -12 }]}>
-          <RecipeSection
-            title={selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)}
-            timer={nextMeal?.displayText ?? "Loading..."}
-            recipes={getCurrentMealRecipes()}
-            isPro={userProfile?.isPro ?? false}
-            onUpgrade={handleUpgrade}
-            onRecipePress={handleRecipePress}
-            onMealTypeSelect={handleMealTypeSelect}
-          />
-        </View>
-        
-        <View style={[styles.section, { marginBottom: screenHeight * 0.03 }]}>
-          <View style={styles.sectionTitle}>
-            <Text style={styles.title}>Low-Carb</Text>
-          </View>
-          <SmallRecipeContainer 
-            recipes={getCurrentLowCarbRecipes()} 
-            isPro={userProfile?.isPro ?? false}
-            onUpgrade={handleUpgrade}
-            onRecipePress={handleRecipePress}
-          />
-        </View>
-        
-        <View style={styles.section}>
-          <View style={styles.sectionTitle}>
-            <Text style={styles.title}>High Protein</Text>
-          </View>
-          <SmallRecipeContainer 
-            recipes={getCurrentHighProteinRecipes()} 
-            isPro={userProfile?.isPro ?? false}
-            onUpgrade={handleUpgrade}
-            onRecipePress={handleRecipePress}
-          />
-        </View>
+        {/* Low Carb Section */}
+        <SmallRecipeContainer
+          recipes={getCurrentLowCarbRecipes()}
+          isPro={userProfileQuery.data?.isPro ?? false}
+          onUpgrade={handleUpgrade}
+          onRecipePress={handleRecipePress}
+        />
 
+        {/* High Protein Section */}
+        <SmallRecipeContainer
+          recipes={getCurrentHighProteinRecipes()}
+          isPro={userProfileQuery.data?.isPro ?? false}
+          onUpgrade={handleUpgrade}
+          onRecipePress={handleRecipePress}
+        />
       </ScrollView>
-      
+
+      {/* Recipe Modal */}
       <RecipeModal
         visible={modalVisible}
         onClose={handleCloseModal}
@@ -459,53 +349,16 @@ export default function Home() {
           proTips: selectedRecipe.proTips
         } : undefined}
       />
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'transparent',
+    backgroundColor: '#F8F9FA',
   },
-
   content: {
     flex: 1,
-    backgroundColor: 'transparent',
-  },
-  scrollContent: {
-    paddingTop: screenHeight * 0.15, // Account for header - responsive
-    backgroundColor: 'transparent',
-    paddingBottom: screenHeight * 0.05, // Add bottom padding for better scrolling
-  },
-  paddedContent: {
-    paddingHorizontal: screenWidth * 0.05, // 5% of screen width
-  },
-  pillsRow: {
-    flexDirection: 'row',
-    gap: screenWidth * 0.02, // Responsive gap
-    marginBottom: screenHeight * 0.04, // Responsive margin
-    marginTop: screenHeight * 0.03, // Responsive margin
-    paddingRight: screenWidth * 0.05, // Add padding to the right for better scrolling
-  },
-  section: {
-    marginBottom: screenHeight * 0.03, // Responsive margin
-  },
-  sectionTitle: {
-    paddingHorizontal: screenWidth * 0.05, // 5% of screen width
-    marginBottom: screenHeight * 0.02, // Responsive margin
-  },
-  title: {
-    fontSize: 22,
-    fontFamily: 'Satoshi-Black',
-    color: '#000000',
-  },
-  skeletonPill: {
-    height: 32,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 16,
-    marginRight: screenWidth * 0.02,
   },
 });

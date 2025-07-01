@@ -28,6 +28,7 @@
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "@tanstack/react-query": "^5.81.5",
     "expo": "^53.0.0",
     "expo-apple-authentication": "~7.2.4",
     "expo-auth-session": "~6.2.0",

@@ -97,6 +97,7 @@ export default function Paywall() {
           <TouchableOpacity>
             <Text style={styles.linkText}>Terms</Text>
           </TouchableOpacity>
+          <View style={styles.divider} />
           <TouchableOpacity>
             <Text style={styles.linkText}>Restore</Text>
           </TouchableOpacity>
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
     width: 60,
   },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontFamily: 'Satoshi-Black',
     color: '#000000',
     paddingHorizontal: 32,
@@ -208,6 +209,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     gap: 40,
+  },
+  divider: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#CCCCCC',
   },
   linkText: {
     fontSize: 13,
