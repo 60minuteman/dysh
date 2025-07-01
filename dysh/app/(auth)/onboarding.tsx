@@ -91,7 +91,9 @@ export default function Onboarding() {
   };
 
   const handleExplorePress = () => {
-    router.push('/(auth)/paywall');
+    //router.push('/(auth)/paywall');
+    router.push('/ingredients');
+
   };
 
   return (

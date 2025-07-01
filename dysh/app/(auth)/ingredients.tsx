@@ -1,81 +1,74 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../../components/Header';
-import { SearchInput } from '../../components/SearchInput';
-import { IngredientItem } from '../../components/IngredientItem';
 import { Button } from '../../components/Button';
-import { IngredientPill } from '../../components/IngredientPill';
+import { Pill } from '../../components/ui/Pill';
 
-const SUGGESTED_INGREDIENTS = [
-  'Chicken',
-  'Rice',
-  'Onion',
-  'Garlic',
-  'Pasta',
-  'Tomato',
-  'Potato',
-  'Beef',
-  'Carrot',
-  'Bell Pepper',
-  'Mushroom',
-  'Egg',
-  'Cheese',
-  'Broccoli',
-  'Spinach',
-];
+const INGREDIENTS = {
+  '🥦 Vegetables': [
+    'Onion',
+    'Tomato', 
+    'Bell Pepper',
+    'Garlic',
+    'Spinach',
+    'Carrot',
+    'Cabbage'
+  ],
+  '🍗 Proteins': [
+    'Chicken',
+    'Egg',
+    'Minced beef',
+    'Fish',
+    'Tofu',
+    'Sausage',
+    'Goat Meat'
+  ],
+  '🍚 Grains & Starches': [
+    'Rice',
+    'Pasta',
+    'Semolina',
+    'Couscous',
+    'Yam',
+    'Plantain',
+    'Bread'
+  ],
+  '🧀 Dairy & Alternatives': [
+    'Milk',
+    'Butter',
+    'Sour Cream',
+    'Cheese',
+    'Yogurt',
+    'Soy Milk'
+  ],
+  '🥫 Canned & Dry Goods': [
+    'Beans',
+    'Cashew Nuts',
+    'Corn',
+    'Tomato Paste',
+    'Green Peas',
+    'Lentils'
+  ]
+};
 
 export default function Ingredients() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
 
-  const filteredIngredients = useMemo(() => {
-    if (!searchQuery.trim()) return SUGGESTED_INGREDIENTS;
-    
-    const query = searchQuery.toLowerCase().trim();
-    return SUGGESTED_INGREDIENTS.filter(ingredient => 
-      ingredient.toLowerCase().includes(query)
-    );
-  }, [searchQuery]);
-
-  const handleAddIngredient = (ingredient: string) => {
-    if (!selectedIngredients.includes(ingredient) && selectedIngredients.length < 10) {
+  const handleToggleIngredient = (ingredient: string) => {
+    if (selectedIngredients.includes(ingredient)) {
+      setSelectedIngredients(selectedIngredients.filter(item => item !== ingredient));
+    } else if (selectedIngredients.length < 6) {
       setSelectedIngredients([...selectedIngredients, ingredient]);
-      setSearchQuery(''); // Clear search after adding
     }
-  };
-
-  const handleRemoveIngredient = (ingredient: string) => {
-    setSelectedIngredients(selectedIngredients.filter(item => item !== ingredient));
   };
 
   const handleGetRecipe = () => {
-    // Pass ingredients to the next screen
     const params = new URLSearchParams();
     params.set('ingredients', JSON.stringify(selectedIngredients));
     router.push(`/servings?${params.toString()}`);
-  };
-
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim() && selectedIngredients.length < 10) {
-      // Capitalize first letter of each word
-      const formattedIngredient = searchQuery.trim()
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      
-      if (!selectedIngredients.includes(formattedIngredient)) {
-        handleAddIngredient(formattedIngredient);
-      }
-    }
   };
 
   return (
@@ -87,58 +80,33 @@ export default function Ingredients() {
       <Stack.Screen options={{ headerShown: false }} />
       
       <Header currentScreen={3} totalScreens={3} />
-
-      {selectedIngredients.length > 0 && (
-        <View style={styles.pillsContainer}>
-          <Text style={styles.pillsCount}>
-            {selectedIngredients.length}/10
-          </Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillsScroll}
-          >
-            {selectedIngredients.map((ingredient) => (
-              <IngredientPill
-                key={ingredient}
-                label={ingredient}
-                onRemove={() => handleRemoveIngredient(ingredient)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
       
-      <Text style={styles.title}>Add atleast 4{'\n'}ingredients</Text>
+      <Text style={styles.title}>Select 6 ingredients to{'\n'}generate your first meal</Text>
       
-      <Text style={styles.subtitle}>Generate your first meal now</Text>
+      <Text style={styles.subtitle}>{selectedIngredients.length}/6 Selected</Text>
 
-      <View style={styles.content}>
-        <SearchInput
-          value={searchQuery}
-          onChangeText={handleSearch}
-          placeholder="Search for ingredients"
-          selectedIngredients={selectedIngredients}
-          onSubmit={handleSearchSubmit}
-        />
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {Object.entries(INGREDIENTS).map(([category, items]) => (
+          <View key={category} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>
+              {category}
+            </Text>
+            <View style={styles.ingredientGrid}>
+              {items.map((ingredient) => (
+                <Pill
+                  key={ingredient}
+                  label={ingredient}
+                  selected={selectedIngredients.includes(ingredient)}
+                  onPress={() => handleToggleIngredient(ingredient)}
+                  disabled={!selectedIngredients.includes(ingredient) && selectedIngredients.length >= 6}
+                />
+              ))}
+            </View>
+          </View>
+        ))}
+      </ScrollView>
 
-        <Text style={styles.sectionTitle}>
-          {searchQuery.trim() ? 'Search result' : 'Suggestion'}
-        </Text>
-
-        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-          {filteredIngredients.map((ingredient) => (
-            <IngredientItem
-              key={ingredient}
-              name={ingredient}
-              onPress={() => handleAddIngredient(ingredient)}
-              disabled={selectedIngredients.length >= 10}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {selectedIngredients.length >= 4 && (
+      {selectedIngredients.length === 6 && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
           <Button
             label="Continue"
@@ -155,24 +123,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  pillsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  pillsCount: {
-    fontSize: 15,
-    fontFamily: 'Satoshi-Medium',
-    color: '#000',
-    marginRight: 12,
-  },
-  pillsScroll: {
-    flexDirection: 'row',
-    paddingRight: 20,
-  },
   title: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: 'Satoshi-Bold',
     color: '#000000',
     paddingHorizontal: 20,
@@ -182,20 +134,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
     paddingHorizontal: 20,
-    marginTop: 8,
+    paddingVertical: 20,
+    marginTop: 5,
   },
   content: {
     flex: 1,
     padding: 20,
   },
-  sectionTitle: {
-    fontSize: 13,
-    color: '#666666',
-    marginTop: 24,
-    marginBottom: 8,
+  categorySection: {
+    marginBottom: 24,
   },
-  list: {
-    flex: 1,
+  categoryTitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 12,
+    fontFamily: 'Satoshi-Semibold',
+  },
+  ingredientGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
   },
   footer: {
     padding: 20,
@@ -203,4 +161,4 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#E8E8E8',
   },
-}); 
+});
