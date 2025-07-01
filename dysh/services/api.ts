@@ -244,30 +244,59 @@ export class ApiService {
     const headers = token ? this.getHeaders(token) : { 'Content-Type': 'application/json' };
     const url = `${API_BASE_URL}/api/explore/${category}?limit=${limit}`;
     
-    console.log(`🌐 API Request: GET ${url}`, {
-      headers: token ? { Authorization: 'Bearer [TOKEN]' } : headers,
+    console.log(`🌐 [EXPLORE] API Request: GET ${url}`, {
+      headers: token ? { Authorization: 'Bearer [REDACTED]', 'Content-Type': 'application/json' } : headers,
       category,
-      limit
+      limit,
+      timestamp: new Date().toISOString()
     });
     
-    const response = await fetch(url, { headers });
-    
-    console.log(`📡 API Response Status: ${response.status} ${response.statusText}`);
-    
-    if (!response.ok) {
-      let errorDetails;
-      try {
-        errorDetails = await response.text();
-        console.log(`❌ API Error Response:`, errorDetails);
-      } catch (e) {
-        console.log(`❌ Could not read error response`);
+    try {
+      const startTime = Date.now();
+      const response = await fetch(url, { headers });
+      const endTime = Date.now();
+      
+      console.log(`📡 [EXPLORE] API Response Status: ${response.status} ${response.statusText} (${endTime - startTime}ms)`, {
+        url,
+        responseHeaders: {
+          'content-type': response.headers.get('content-type'),
+          'content-length': response.headers.get('content-length')
+        }
+      });
+      
+      if (!response.ok) {
+        let errorDetails;
+        try {
+          errorDetails = await response.text();
+          console.error(`❌ [EXPLORE] API Error Response:`, {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorDetails,
+            url
+          });
+        } catch (e) {
+          console.error(`❌ [EXPLORE] Could not read error response:`, e);
+        }
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetails || 'No details'}`);
       }
-      throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetails || 'No details'}`);
+      
+      const data = await response.json();
+      console.log(`✅ [EXPLORE] API Success Response:`, {
+        recipesCount: data.recipes?.length || 0,
+        category: data.category,
+        firstRecipeTitle: data.recipes?.[0]?.title,
+        dataStructure: Object.keys(data)
+      });
+      return data;
+    } catch (error) {
+             console.error(`💥 [EXPLORE] API Request Failed:`, {
+         error: error instanceof Error ? error.message : String(error),
+         url,
+         category,
+         limit
+       });
+      throw error;
     }
-    
-    const data = await response.json();
-    console.log(`✅ API Success Response:`, data);
-    return data;
   }
 
   static async likeRecipe(token: string | null, recipeId: string): Promise<{ success: boolean }> {
@@ -307,13 +336,57 @@ export class ApiService {
 
   // Daily Recipe Endpoints
   static async getDailyRecipes(token: string, limit: number = 20, offset: number = 0): Promise<DailyRecipesResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/daily-recipes?limit=${limit}&offset=${offset}`, {
-      headers: this.getHeaders(token)
+    const url = `${API_BASE_URL}/api/daily-recipes?limit=${limit}&offset=${offset}`;
+    
+    console.log(`🌐 [DAILY] API Request: GET ${url}`, {
+      headers: { Authorization: 'Bearer [REDACTED]', 'Content-Type': 'application/json' },
+      limit,
+      offset,
+      timestamp: new Date().toISOString()
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    
+    try {
+      const startTime = Date.now();
+      const response = await fetch(url, {
+        headers: this.getHeaders(token)
+      });
+      const endTime = Date.now();
+      
+      console.log(`📡 [DAILY] API Response Status: ${response.status} ${response.statusText} (${endTime - startTime}ms)`);
+      
+      if (!response.ok) {
+        let errorDetails;
+        try {
+          errorDetails = await response.text();
+          console.error(`❌ [DAILY] API Error Response:`, {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorDetails,
+            url
+          });
+        } catch (e) {
+          console.error(`❌ [DAILY] Could not read error response:`, e);
+        }
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetails || 'No details'}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ [DAILY] API Success Response:`, {
+        recipesCount: data.recipes?.length || 0,
+        totalCount: data.totalCount,
+        firstRecipeTitle: data.recipes?.[0]?.recipe?.title,
+        dataStructure: Object.keys(data)
+      });
+      return data;
+    } catch (error) {
+             console.error(`💥 [DAILY] API Request Failed:`, {
+         error: error instanceof Error ? error.message : String(error),
+         url,
+         limit,
+         offset
+       });
+      throw error;
     }
-    return response.json();
   }
 
   static async getDailyRecipesByCategory(token: string, category: string): Promise<DailyRecipe[]> {

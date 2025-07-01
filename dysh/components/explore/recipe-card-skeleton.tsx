@@ -57,7 +57,11 @@ export function RecipeCardSkeleton() {
 }
 
 export function RecipeStackSkeleton() {
-  return <RecipeCardSkeleton />;
+  return (
+    <Animated.View style={styles.stackSkeletonContainer}>
+      <RecipeCardSkeleton />
+    </Animated.View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -68,5 +72,12 @@ const styles = StyleSheet.create({
   logo: {
     width: 80,
     height: 80,
+  },
+  stackSkeletonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
 });

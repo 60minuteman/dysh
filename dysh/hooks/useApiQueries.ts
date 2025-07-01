@@ -32,8 +32,13 @@ export const queryKeys = {
 
 // Helper function to get token
 const getToken = async () => {
-  const authHeaders = await authService.getAuthHeaders();
-  return authHeaders.Authorization?.replace('Bearer ', '') || '';
+  try {
+    const authHeaders = await authService.getAuthHeaders();
+    return authHeaders.Authorization?.replace('Bearer ', '') || null;
+  } catch (error) {
+    console.log('🔓 No auth token available:', error instanceof Error ? error.message : String(error));
+    return null;
+  }
 };
 
 // ===== Internal API Hooks (lib/api.ts) =====
@@ -324,10 +329,22 @@ export const useExploreRecipes = (category: ExploreCategory, limit: number = 10)
   return useQuery({
     queryKey: queryKeys.exploreRecipes(category, limit),
     queryFn: async () => {
+      console.log('🚀 API Request - Explore Recipes:', { category, limit });
       const token = await getToken();
-      return ApiService.getExploreRecipes(token, category, limit);
+      console.log('🔑 Token obtained for explore:', token ? 'YES' : 'NO');
+      
+      try {
+        // Explore endpoint works without authentication
+        const result = await ApiService.getExploreRecipes(token, category, limit);
+        console.log('✅ API Response - Explore Recipes:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ API Error - Explore Recipes:', error);
+        throw error;
+      }
     },
     staleTime: 15 * 60 * 1000, // 15 minutes
+    retry: 3, // Retry failed requests
   });
 };
 
@@ -382,10 +399,27 @@ export const useDailyRecipes = (limit: number = 20, offset: number = 0) => {
   return useQuery({
     queryKey: queryKeys.dailyRecipes(limit, offset),
     queryFn: async () => {
+      console.log('🚀 API Request - Daily Recipes:', { limit, offset });
       const token = await getToken();
-      return ApiService.getDailyRecipes(token, limit, offset);
+      console.log('🔑 Token obtained for daily:', token ? 'YES' : 'NO');
+      
+      if (!token) {
+        console.warn('⚠️ No token available for daily recipes - user not authenticated');
+        throw new Error('Authentication required for daily recipes');
+      }
+      
+      try {
+        const result = await ApiService.getDailyRecipes(token, limit, offset);
+        console.log('✅ API Response - Daily Recipes:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ API Error - Daily Recipes:', error);
+        throw error;
+      }
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
+    enabled: false, // We'll enable this conditionally based on auth
+    retry: 1, // Only retry once for auth errors
   });
 };
 

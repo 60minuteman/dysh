@@ -38,6 +38,7 @@ export interface RecipeStackRef {
   swipeNext: () => void;
   swipePrevious: () => void;
   getCurrentRecipe: () => Recipe | null;
+  goBackFromLeft: () => void;
 }
 
 interface RecipeStackProps {
@@ -126,6 +127,11 @@ const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>(({ category = '
     getCurrentRecipe: () => {
       return recipes[currentIndex] || null;
     },
+    goBackFromLeft: () => {
+      if (cardStackRef.current) {
+        cardStackRef.current.goBackFromLeft();
+      }
+    },
   }));
 
   const handleSwipeStart = (direction: 'left' | 'right') => {
@@ -196,7 +202,7 @@ const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>(({ category = '
   if (!recipes.length) {
     return (
       <View style={[styles.container, { width }]}>
-        <ExploreEmptyState />
+        <ExploreEmptyState category={category} />
       </View>
     );
   }
@@ -206,17 +212,26 @@ const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>(({ category = '
       <CardStack
         ref={cardStackRef}
         style={styles.cardStack}
-        stackNumber={3}
-        stackOffset={8}
-        loop={false}
         onSwipedLeft={handleCardSwiped}
         onSwipedRight={handleCardSwiped}
-        onSwipedAll={handleCardSwipedAll}
-        onSwipeStart={handleSwipeStart}
-        onSwipeEnd={handleSwipeEnd}
-        renderCard={(recipe: Recipe, index: number) => (
+        cardContainerStyle={styles.cardContainer}
+        verticalSwipe={false}
+        disableBottomSwipe
+        disableTopSwipe
+        renderNoMoreCards={() => null}
+      >
+        {recipes.map((recipe, index) => (
           <Card key={recipe.id}>
-            <RecipeCard recipe={recipe} />
+            <RecipeCard 
+              title={recipe.title}
+              duration={recipe.duration}
+              calories={recipe.calories}
+              rating={recipe.rating}
+              image={{ uri: recipe.imageUrl }}
+              country={recipe.country || { flag: '🌍', name: 'International' }}
+              swipeDirection={swipeDirection}
+              swipeProgress={1}
+            />
             {swipeDirection && (
               <Animated.View 
                 style={[
@@ -231,33 +246,25 @@ const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>(({ category = '
               </Animated.View>
             )}
           </Card>
-        )}
-        cardContainerStyle={styles.cardContainer}
-        verticalSwipe={false}
-        horizontalSwipe={true}
-        outputRotationRange={['-15deg', '0deg', '15deg']}
-        disableBottomSwipe
-        disableTopSwipe
-      />
+        ))}
+      </CardStack>
 
       <View style={styles.actionContainer}>
         <ActionButton
-          type="skip"
+          variant="reject"
           onPress={() => {
             if (cardStackRef.current) {
               cardStackRef.current.swipeLeft();
             }
           }}
-          disabled={likeRecipeMutation.isPending || unlikeRecipeMutation.isPending}
         />
         <ActionButton
-          type="like"
+          variant="like"
           onPress={() => {
             if (cardStackRef.current) {
               cardStackRef.current.swipeRight();
             }
           }}
-          disabled={likeRecipeMutation.isPending || unlikeRecipeMutation.isPending}
         />
       </View>
     </View>
@@ -268,11 +275,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   cardStack: {
     flex: 1,
     width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   cardContainer: {
     borderRadius: 21,
@@ -298,8 +308,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 40,
-    paddingTop: 20,
+    paddingBottom: 20,
     width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   errorText: {
     fontSize: 16,
