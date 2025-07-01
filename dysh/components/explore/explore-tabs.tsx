@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useExploreContext } from '../../contexts/ExploreContext';
 
 const tabs = ['Daily', 'Trending', '30-Min Meals', 'Chef Picks', 'Occasion'];
 
@@ -9,6 +10,7 @@ interface ExploreTabsProps {
 
 export function ExploreTabs({ onTabChange }: ExploreTabsProps) {
   const [activeTab, setActiveTab] = React.useState(2);
+  const { setCategory } = useExploreContext();
 
   const categoryMap = {
     0: 'daily',
@@ -21,12 +23,15 @@ export function ExploreTabs({ onTabChange }: ExploreTabsProps) {
   // Trigger initial category selection
   React.useEffect(() => {
     console.log('ExploreTabs: Setting initial category to thirty-min-meals');
-    onTabChange?.(categoryMap[2]); // Default to thirty-min-meals
-  }, []); // Remove onTabChange dependency to avoid multiple calls
+    setCategory(categoryMap[2] as any); // Default to thirty-min-meals
+    onTabChange?.(categoryMap[2]);
+  }, [setCategory, onTabChange]); 
 
   const handleTabPress = (index: number) => {
     setActiveTab(index);
-    onTabChange?.(categoryMap[index as keyof typeof categoryMap]);
+    const selectedCategory = categoryMap[index as keyof typeof categoryMap];
+    setCategory(selectedCategory as any);
+    onTabChange?.(selectedCategory);
   };
 
   return (

@@ -28,11 +28,12 @@ export function RecipeCard({
   swipeDirection,
   swipeProgress = 0,
 }: RecipeCardProps) {
-  const { height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const cardHeight = screenHeight * 0.63; // Approximately 503px on standard screen heights
+  const cardWidth = screenWidth - 30; // Full width minus 20px padding on each side
 
   return (
-    <View style={[styles.container, { height: cardHeight }]}>
+    <View style={[styles.container, { height: cardHeight, width: cardWidth }]}>
       {swipeDirection && (
         <View style={[StyleSheet.absoluteFill, styles.overlayContainer]}>
           <SwipeOverlay 
@@ -74,7 +75,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#EAEAEA',
     backgroundColor: '#EAEAEA',
-    width: '100%',
     elevation: 3, // Android shadow
     shadowColor: '#000', // iOS shadow
     marginBottom: '20%',
@@ -129,4 +129,4 @@ const styles = StyleSheet.create({
     zIndex: 999, // Ensure overlay is on top
     elevation: 999, // For Android
   },
-}); 
+});

@@ -16,6 +16,7 @@ import {
 } from '../../hooks/useApiQueries';
 
 import type { ExploreCategory } from '../../services/api';
+import { useExploreContext } from '../../contexts/ExploreContext';
 
 interface Recipe {
   id: string;
@@ -41,16 +42,17 @@ export interface RecipeStackRef {
   goBackFromLeft: () => void;
 }
 
-interface RecipeStackProps {
-  category?: ExploreCategory;
-}
+interface RecipeStackProps {}
 
-const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>(({ category = 'thirty-min-meals' }, ref) => {
+const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>((props, ref) => {
   const { width } = useWindowDimensions();
   const cardStackRef = useRef<CardStack<Recipe>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // Get category from context
+  const { category } = useExploreContext();
 
   // React Query hooks
   const exploreRecipesQuery = useExploreRecipes(category, 10);
@@ -209,45 +211,47 @@ const RecipeStack = forwardRef<RecipeStackRef, RecipeStackProps>(({ category = '
 
   return (
     <View style={[styles.container, { width }]}>
-      <CardStack
-        ref={cardStackRef}
-        style={styles.cardStack}
-        onSwipedLeft={handleCardSwiped}
-        onSwipedRight={handleCardSwiped}
-        cardContainerStyle={styles.cardContainer}
-        verticalSwipe={false}
-        disableBottomSwipe
-        disableTopSwipe
-        renderNoMoreCards={() => null}
-      >
-        {recipes.map((recipe, index) => (
-          <Card key={recipe.id}>
-            <RecipeCard 
-              title={recipe.title}
-              duration={recipe.duration}
-              calories={recipe.calories}
-              rating={recipe.rating}
-              image={{ uri: recipe.imageUrl }}
-              country={recipe.country || { flag: '🌍', name: 'International' }}
-              swipeDirection={swipeDirection}
-              swipeProgress={1}
-            />
-            {swipeDirection && (
-              <Animated.View 
-                style={[
-                  styles.overlay,
-                  { opacity: overlayOpacity }
-                ]}
-              >
-                <SwipeOverlay 
-                  type={swipeDirection === 'right' ? 'like' : 'skip'}
-                  opacity={1}
-                />
-              </Animated.View>
-            )}
-          </Card>
-        ))}
-      </CardStack>
+      <View style={styles.cardStackWrapper}>
+        <CardStack
+          ref={cardStackRef}
+          style={styles.cardStack}
+          onSwipedLeft={handleCardSwiped}
+          onSwipedRight={handleCardSwiped}
+          cardContainerStyle={styles.cardContainer}
+          verticalSwipe={false}
+          disableBottomSwipe
+          disableTopSwipe
+          renderNoMoreCards={() => null}
+        >
+          {recipes.map((recipe, index) => (
+            <Card key={recipe.id}>
+              <RecipeCard 
+                title={recipe.title}
+                duration={recipe.duration}
+                calories={recipe.calories}
+                rating={recipe.rating}
+                image={{ uri: recipe.imageUrl }}
+                country={recipe.country || { flag: '🌍', name: 'International' }}
+                swipeDirection={swipeDirection}
+                swipeProgress={1}
+              />
+              {swipeDirection && (
+                <Animated.View 
+                  style={[
+                    styles.overlay,
+                    { opacity: overlayOpacity }
+                  ]}
+                >
+                  <SwipeOverlay 
+                    type={swipeDirection === 'right' ? 'like' : 'skip'}
+                    opacity={1}
+                  />
+                </Animated.View>
+              )}
+            </Card>
+          ))}
+        </CardStack>
+      </View>
 
       <View style={styles.actionContainer}>
         <ActionButton
@@ -278,11 +282,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
+  cardStackWrapper: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardStack: {
     flex: 1,
     width: '100%',
     maxWidth: 400,
-    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: -42,
   },
   cardContainer: {
     borderRadius: 21,
@@ -307,11 +319,12 @@ const styles = StyleSheet.create({
   actionContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 40,
+    paddingHorizontal: 60,
     paddingBottom: 20,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 270,
     alignSelf: 'center',
+    marginTop: -80,
   },
   errorText: {
     fontSize: 16,
