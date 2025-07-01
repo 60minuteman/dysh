@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { AuthProvider } from '../contexts/AuthContext';
+import * as Updates from 'expo-updates';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -14,7 +14,7 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  initialRouteName: 'splash',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -54,26 +54,49 @@ export default function RootLayout() {
     }
   }, [colorScheme]);
 
+  // Check for updates on app start (only in production builds)
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      if (!__DEV__ && Updates.isEnabled) {
+        try {
+          console.log('🔄 Checking for updates...');
+          const update = await Updates.checkForUpdateAsync();
+          
+          if (update.isAvailable) {
+            console.log('📦 Update available, downloading...');
+            await Updates.fetchUpdateAsync();
+            console.log('✅ Update downloaded, reloading app...');
+            await Updates.reloadAsync();
+          } else {
+            console.log('✅ App is up to date');
+          }
+        } catch (error) {
+          console.error('❌ Error checking for updates:', error);
+        }
+      }
+    };
+
+    checkForUpdates();
+  }, []);
+
   if (!loaded) {
     return null;
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ 
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: '#F9F9F9'
-          }
-        }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="splash" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-        <StatusBar style="dark" backgroundColor="#F9F9F9" />
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ 
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: '#F9F9F9'
+        }
+      }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="splash" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+      <StatusBar style="dark" backgroundColor="#F9F9F9" />
+    </ThemeProvider>
   );
 }

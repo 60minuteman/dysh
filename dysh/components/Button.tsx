@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   label: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Satoshi-Bold',
     color: '#FFFFFF',
   },

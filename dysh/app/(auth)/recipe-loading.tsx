@@ -1,18 +1,28 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ImageBackground, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ImageBackground, Animated, Alert } from 'react-native';
 import LottieView from 'lottie-react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiService } from '../../lib/api';
 
 export default function RecipeLoading() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
   const progress = useRef(new Animated.Value(0)).current;
   const lottieRef = useRef<LottieView>(null);
+  const [isGenerating, setIsGenerating] = useState(true);
+
+  // Parse parameters
+  const ingredients = params.ingredients ? JSON.parse(params.ingredients as string) : [];
+  const servings = (params.servings as string) || '2';
 
   useEffect(() => {
     // Start Lottie animation
     lottieRef.current?.play();
+
+    // Start recipe generation
+    generateRecipe();
 
     // Animate loading bar
     Animated.sequence([
@@ -40,16 +50,67 @@ export default function RecipeLoading() {
         useNativeDriver: false,
       }),
     ]).start();
-
-    // Navigate after loading animation
-    const timeout = setTimeout(() => {
-      //router.push('/recipe');
-      router.push('/(auth)/suggested-recipes');
-
-    }, 2500);
-
-    return () => clearTimeout(timeout);
   }, []);
+
+  const generateRecipe = async () => {
+    try {
+      setIsGenerating(true);
+      
+      if (!ingredients || ingredients.length === 0) {
+        throw new Error('No ingredients provided');
+      }
+
+      console.log('Generating recipe with ingredients:', ingredients);
+      
+      const result = await apiService.generateRecipes({
+        ingredients: ingredients,
+        servings: parseInt(servings),
+      });
+
+      console.log('Recipe generation result:', result);
+
+      // Navigate to suggested recipes with the first meal from the response
+      const firstMeal = result.meals[0];
+      const recipeData = {
+        title: firstMeal.name,
+        image: firstMeal.image,
+        duration: firstMeal.estimatedCookTime,
+        calories: firstMeal.calories,
+        rating: firstMeal.rating.toString(),
+        ingredients: firstMeal.ingredients,
+        instructions: firstMeal.instructions,
+        proTips: firstMeal.proTips,
+        provider: result.provider,
+        location: result.location
+      };
+
+      const params = new URLSearchParams();
+      params.set('recipeData', JSON.stringify(recipeData));
+      params.set('ingredients', JSON.stringify(ingredients));
+      params.set('servings', servings);
+
+      router.replace(`/suggested-recipes?${params.toString()}`);
+    } catch (error: any) {
+      console.error('Recipe generation error:', error);
+      Alert.alert(
+        'Recipe Generation Failed',
+        error.message || 'Unable to generate recipes. Please try again.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => generateRecipe(),
+          },
+          {
+            text: 'Go Back',
+            onPress: () => router.back(),
+            style: 'cancel',
+          },
+        ]
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const width = progress.interpolate({
     inputRange: [0, 1],

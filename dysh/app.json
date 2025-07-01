@@ -9,31 +9,59 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dysh.app"
+      "bundleIdentifier": "com.dysh.app",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to suggest recipes based on your local cuisine and ingredients.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to suggest recipes based on your local cuisine and ingredients."
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.dysh.app"
+      "package": "com.dysh.app",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-apple-authentication",
+      "expo-build-properties",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true
     },
     "extra": {
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "07ac542d-027e-49e0-b5ec-07a5f9bd265b"
       }
+    },
+    "owner": "dreemlab",
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/07ac542d-027e-49e0-b5ec-07a5f9bd265b"
     }
   }
 }

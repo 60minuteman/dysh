@@ -14,9 +14,12 @@ interface Recipe {
 
 interface SmallRecipeContainerProps {
   recipes: Recipe[];
+  isPro?: boolean;
+  onUpgrade?: () => void;
+  onRecipePress?: (recipe: Recipe) => void;
 }
 
-export function SmallRecipeContainer({ recipes }: SmallRecipeContainerProps) {
+export function SmallRecipeContainer({ recipes, isPro = false, onUpgrade, onRecipePress }: SmallRecipeContainerProps) {
   const router = useRouter();
 
   return (
@@ -25,58 +28,16 @@ export function SmallRecipeContainer({ recipes }: SmallRecipeContainerProps) {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
     >
-      {recipes.map((recipe) => (
+      {recipes.map((recipe, index) => (
         <View key={recipe.id} style={styles.cardContainer}>
           <SmallRecipeCard
             {...recipe}
-            onPress={() => router.push('/recipe')}
+            onPress={() => onRecipePress ? onRecipePress(recipe) : router.push('/recipe')}
+            isLocked={!isPro && index > 0}
+            onUpgrade={onUpgrade}
           />
         </View>
       ))}
-      <View style={styles.cardContainer}>
-        <SmallRecipeCard
-          id="placeholder1"
-          title="Recipe 1"
-          duration="30 min"
-          calories="300 kcal" 
-          rating="4.5"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
-      <View style={styles.cardContainer}>
-        <SmallRecipeCard
-          id="placeholder2"
-          title="Recipe 2"
-          duration="45 min"
-          calories="400 kcal"
-          rating="4.7"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
-      <View style={styles.cardContainer}>
-        <SmallRecipeCard
-          id="placeholder3"
-          title="Recipe 3"
-          duration="25 min"
-          calories="250 kcal"
-          rating="4.3"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
-      <View style={styles.cardContainer}>
-        <SmallRecipeCard
-          id="placeholder4"
-          title="Recipe 4"
-          duration="35 min"
-          calories="350 kcal"
-          rating="4.6"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
     </ScrollView>
   );
 }

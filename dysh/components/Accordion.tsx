@@ -28,13 +28,13 @@ export function Accordion({ title, expanded, onPress, children }: AccordionProps
         activeOpacity={0.7}
       >
         <Text style={styles.title}>{title}</Text>
-        <View style={[styles.iconContainer, expanded && styles.iconContainerExpanded]}>
+        {/* <View style={[styles.iconContainer, expanded && styles.iconContainerExpanded]}>
           <Ionicons 
             name={expanded ? "chevron-up" : "chevron-down"} 
             size={20} 
             color="#000" 
           />
-        </View>
+        </View> */}
       </TouchableOpacity>
       {expanded && (
         <View style={styles.content}>

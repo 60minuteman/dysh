@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchInput } from '../../components/SearchInput';
 import { CookbookTabs } from '../../components/cookbook/cookbook-tabs';
 import { CookbookRecipeCard } from '../../components/cookbook/cookbook-recipe-card';
 import { Ionicons } from '@expo/vector-icons';
+import { ApiService } from '../../services/api';
+import { authService } from '../../lib/auth';
+import { useRouter } from 'expo-router';
 
 const RECIPES = [
   {
@@ -27,6 +30,54 @@ export default function Cookbook() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [searchValue, setSearchValue] = useState('');
+  const [recipes, setRecipes] = useState(RECIPES);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  // Check authentication and fetch cookbook recipes
+  useEffect(() => {
+    const fetchCookbookRecipes = async () => {
+      try {
+        setLoading(true);
+        
+        // Check if user is authenticated
+        const isAuthenticated = await authService.isAuthenticated();
+        if (!isAuthenticated) {
+          router.replace('/(auth)/onboarding');
+          return;
+        }
+
+        // Get token from auth service
+        const authHeaders = await authService.getAuthHeaders();
+        const token = authHeaders.Authorization?.replace('Bearer ', '') || '';
+        
+        if (!token) {
+          console.log('No token available for cookbook recipes');
+          return;
+        }
+
+        const response = await ApiService.getCookbookRecipes(token, 20, 0);
+        if (response.recipes.length > 0) {
+          // Transform API data to match local interface
+          const transformedRecipes = response.recipes.map(recipe => ({
+            id: recipe.id,
+            title: recipe.title,
+            duration: recipe.duration,
+            calories: recipe.calories,
+            image: { uri: recipe.imageUrl },
+          }));
+          setRecipes(transformedRecipes);
+        }
+      } catch (error) {
+        console.error('Error fetching cookbook recipes:', error);
+        // Keep fallback recipes if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCookbookRecipes();
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -52,7 +103,7 @@ export default function Cookbook() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
-          {RECIPES.slice(0, 2).map((recipe) => (
+          {recipes.slice(0, 2).map((recipe) => (
             <View key={recipe.id} style={styles.cardWrapper}>
               <CookbookRecipeCard {...recipe} />
             </View>

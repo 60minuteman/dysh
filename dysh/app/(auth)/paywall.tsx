@@ -1,92 +1,105 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
-import { Logo } from '../../components/paywall/Logo';
-import { Selector } from '../../components/Selector';
 
 export default function Paywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [selectedPlan, setSelectedPlan] = useState<'yearly' | 'monthly'>('yearly');
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <TouchableOpacity 
-        style={[styles.closeButton, { marginTop: insets.top + 16 }]}
-        onPress={() => router.back()}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.closeIcon}>✕</Text>
-      </TouchableOpacity>
-
-      <View style={styles.header}>
-        <Logo />
-      </View>
-
-      <Text style={styles.title}>Smarter Cooking,{'\n'}Better Meals!</Text>
-
-      <View style={styles.features}>
-        <View style={styles.featureRow}>
-          <Image source={require('../../assets/paywall/1.png')} style={styles.featureIcon} />
-          <Text style={styles.feature}>AI Recipes from Your Ingredients</Text>
-        </View>
-        <View style={styles.featureRow}>
-          <Image source={require('../../assets/paywall/2.png')} style={styles.featureIcon} />
-          <Text style={styles.feature}>Flavors from 10+ Global Cuisines</Text>
-        </View>
-        <View style={styles.featureRow}>
-          <Image source={require('../../assets/paywall/3.png')} style={styles.featureIcon} />
-          <Text style={styles.feature}>Save & Customize Your Cookbook</Text>
-        </View>
-        <View style={styles.featureRow}>
-          <Image source={require('../../assets/paywall/4.png')} style={styles.featureIcon} />
-          <Text style={styles.feature}>Instant Meal Ideas with Calories</Text>
-        </View>
-        <View style={styles.featureRow}>
-          <Image source={require('../../assets/paywall/5.png')} style={styles.featureIcon} />
-          <Text style={styles.feature}>Smart Shop Suggestions</Text>
-        </View>
-      </View>
-
-      <View style={styles.plans}>
-        <TouchableOpacity
-          style={[styles.plan, selectedPlan === 'yearly' && styles.planSelected]}
-          onPress={() => setSelectedPlan('yearly')}
+      {/* Top section with food images */}
+      <View style={styles.topSection}>
+        <Image 
+          source={require('../../assets/images/top.png')} 
+          style={styles.topImage}
+          resizeMode="cover"
+        />
+        
+        <TouchableOpacity 
+          style={[styles.closeButton, { marginTop: insets.top + 16 }]}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
         >
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>30% Off</Text>
-          </View>
-          <View style={styles.planHeader}>
-            <Text style={styles.planTitle}>Yearly</Text>
-          </View>
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>$33.49/year</Text>
-            <Text style={styles.priceSubtext}>($2.79/monthly)</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.plan, selectedPlan === 'monthly' && styles.planSelected]}
-          onPress={() => setSelectedPlan('monthly')}
-        >
-          <Text style={styles.planTitle}>Monthly</Text>
-          <Text style={styles.price}>$3.99/month</Text>
+          <Text style={styles.closeIcon}>✕</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.footer}>
+      {/* Content section */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/logo/logo-green.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Title */}
+        <Text style={styles.title}>Smarter Cooking,{'\n'}Better Meals!</Text>
+
+        {/* Features */}
+        <View style={styles.features}>
+          <View style={styles.featureRow}>
+            <Image source={require('../../assets/icons/cherry.png')} style={styles.featureIcon} />
+            <Text style={styles.featureText}>
+              Get personalized recipes based on the{'\n'}ingredients in your kitchen.
+            </Text>
+          </View>
+
+          <View style={styles.featureRow}>
+            <Image source={require('../../assets/icons/search.png')} style={styles.featureIcon} />
+            <Text style={styles.featureText}>
+              Enjoy fresh daily meal ideas across African,{'\n'}Asian, and global cuisines.
+            </Text>
+          </View>
+
+          <View style={styles.featureRow}>
+            <Image source={require('../../assets/icons/book.png')} style={styles.featureIcon} />
+            <Text style={styles.featureText}>
+              Follow clear step-by-step guides that make{'\n'}cooking effortless.
+            </Text>
+          </View>
+
+          <View style={styles.featureRow}>
+            <Text style={styles.fireIcon}>🔥</Text>
+            <Text style={styles.featureText}>
+              See detailed calorie info for every recipe to{'\n'}eat smarter.
+            </Text>
+          </View>
+
+          <View style={styles.featureRow}>
+            <Image source={require('../../assets/icons/plus.png')} style={styles.featureIcon} />
+            <Text style={styles.featureText}>
+              Get smart shopping suggestions so you{'\n'}never run out of what you need.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Bottom section */}
+      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 20 }]}>
         <Button 
-          label="Let's Gooo"
+          label="Continue"
           onPress={() => router.push('/(tabs)')}
         />
+        
+        <Text style={styles.planText}>
+          Plan automatically renews for $2.99/week until canceled
+        </Text>
+        
         <View style={styles.links}>
-          <Text style={styles.link}>Terms</Text>
-          <Text style={styles.link}>Privacy Policy</Text>
-          <Text style={styles.link}>Restore</Text>
+          <TouchableOpacity>
+            <Text style={styles.linkText}>Terms</Text>
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Text style={styles.linkText}>Restore</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -98,126 +111,107 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  topSection: {
+    height: 200,
+    position: 'relative',
+  },
+  topImage: {
+    width: '100%',
+    height: '100%',
+  },
   closeButton: {
     position: 'absolute',
     right: 20,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EDEDED',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
   },
   closeIcon: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
   },
-  header: {
-    paddingHorizontal: 20,
-    marginTop: 20,
+  content: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
+  },
+  logoContainer: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 32,
+    marginTop: 32,
+  },
+  logo: {
+    height: 24,
+    width: 60,
   },
   title: {
-    fontSize: 35,
+    fontSize: 32,
     fontFamily: 'Satoshi-Black',
     color: '#000000',
-    paddingHorizontal: 20,
-    marginTop: 20,
+    paddingHorizontal: 32,
+    marginTop: 24,
+    lineHeight: 40,
   },
   features: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-    marginBottom: -20,
+    paddingHorizontal: 32,
+    marginTop: 32,
   },
   featureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
   featureIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 12,
+    width: 20,
+    height: 20,
+    marginRight: 16,
+    marginTop: 2,
+    tintColor: '#666666',
   },
-  feature: {
-    fontSize: 17,
-    fontFamily: 'Satoshi-Medium',
-    color: '#000000',
+  fireIcon: {
+    fontSize: 20,
+    marginRight: 16,
+    marginTop: 2,
+    width: 20,
+    textAlign: 'center',
   },
-  plans: {
-    paddingHorizontal: 20,
-    marginTop: 40,
-  },
-  plan: {
-    backgroundColor: '#F9F9F9',
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#EDEDED',
-    position: 'relative',
-  },
-  planSelected: {
-    backgroundColor: '#F0F9EA',
-    borderWidth: 2,
-    borderColor: '#64D61D',
-  },
-  planHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  planTitle: {
-    fontSize: 17,
-    fontFamily: 'Satoshi-Medium',
-    color: '#000000',
-  },
-  discountBadge: {
-    backgroundColor: '#000000',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 100,
-    position: 'absolute',
-    right: 8,
-    top: -14,
-  },
-  discountText: {
+  featureText: {
     fontSize: 14,
-    fontFamily: 'Satoshi-Bold',
-    color: '#FFFFFF',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  price: {
-    fontSize: 24,
-    fontFamily: 'Satoshi-Black',
-    color: '#000000',
-  },
-  priceSubtext: {
-    fontSize: 15,
     fontFamily: 'Satoshi-Medium',
-    color: '#666666',
+    color: '#000000',
+    lineHeight: 22,
+    flex: 1,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    marginBottom: 24,
+  bottomSection: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 32,
+    paddingTop: 20,
+  },
+  planText: {
+    fontSize: 13,
+    fontFamily: 'Satoshi-Medium',
+    color: '#999999',
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 18,
   },
   links: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 34,
-    marginTop: 40,
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 40,
   },
-  link: {
+  linkText: {
     fontSize: 13,
-    color: '#666666',
+    fontFamily: 'Satoshi-Medium',
+    color: '#999999',
   },
 }); 

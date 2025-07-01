@@ -53,7 +53,10 @@ export default function Ingredients() {
   };
 
   const handleGetRecipe = () => {
-    router.push('/servings');
+    // Pass ingredients to the next screen
+    const params = new URLSearchParams();
+    params.set('ingredients', JSON.stringify(selectedIngredients));
+    router.push(`/servings?${params.toString()}`);
   };
 
   const handleSearch = (text: string) => {

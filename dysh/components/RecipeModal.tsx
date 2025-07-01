@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Modal, TouchableOpacity, ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RecipeStats } from './RecipeStats';
 import { Accordion } from './Accordion';
@@ -11,10 +11,13 @@ interface RecipeModalProps {
   onStartCooking: () => void;
   recipe?: {
     title: string;
-    image: any;
+    image: ImageSourcePropType | { uri: string }; // Support both local and URI images
     duration: string;
     calories: string;
     rating: string;
+    ingredients?: string[];
+    instructions?: string[];
+    proTips?: string[];
   };
 }
 
@@ -26,11 +29,35 @@ export function RecipeModal({ visible, onClose, onStartCooking, recipe }: Recipe
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  const proTips = [
+  // Format the stats
+  const formattedDuration = recipe?.duration?.replace('minutes', 'Mins') || '';
+  const formattedCalories = recipe?.calories?.includes('per serving') 
+    ? recipe.calories.replace('per serving', '').replace('calories', 'KCAL').trim()
+    : recipe?.calories?.replace('calories', 'KCAL') || '';
+  const formattedRating = recipe?.rating?.includes('stars') 
+    ? recipe.rating.split(' ')[0] 
+    : recipe?.rating || '';
+
+  // Use provided tips or fallback to default ones
+  const displayTips = recipe?.proTips && recipe.proTips.length > 0 ? recipe.proTips : [
     'Add cumin or curry for a bolder flavor.',
     'Top with avocado, cheese, or hot sauce for extra richness.',
     'Swap rice for quinoa for a healthier twist.',
   ];
+
+  // Use provided instructions or fallback
+  const displayInstructions = recipe?.instructions && recipe.instructions.length > 0 ? recipe.instructions : [
+    'Prepare all ingredients and have them ready.',
+    'Follow the cooking steps carefully.',
+    'Taste and adjust seasoning as needed.',
+    'Serve hot and enjoy!'
+  ];
+
+  // Clean up instructions by removing "Step X" prefixes
+  const cleanedInstructions = displayInstructions.map(instruction => {
+    // Remove patterns like "Step 1:", "Step 2.", "Step 1 -", etc.
+    return instruction.replace(/^Step\s*\d+[\s\-\.\:]*\s*/i, '').trim();
+  });
 
   if (!recipe) return null;
 
@@ -57,9 +84,9 @@ export function RecipeModal({ visible, onClose, onStartCooking, recipe }: Recipe
             <View style={styles.content}>
               <Text style={styles.recipeTitle}>{recipe.title}</Text>
               <RecipeStats 
-                duration={recipe.duration}
-                calories={recipe.calories}
-                rating={recipe.rating}
+                duration={formattedDuration}
+                calories={formattedCalories}
+                rating={formattedRating}
               />
 
               <View style={styles.accordionContainer}>
@@ -68,7 +95,15 @@ export function RecipeModal({ visible, onClose, onStartCooking, recipe }: Recipe
                   expanded={expandedSection === 'ingredients'}
                   onPress={() => toggleSection('ingredients')}
                 >
-                  <Text style={styles.sectionText}>Ingredients list here...</Text>
+                  {recipe.ingredients && recipe.ingredients.length > 0 ? (
+                    recipe.ingredients.map((ingredient, index) => (
+                      <Text key={index} style={styles.ingredientText}>
+                        • {ingredient}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={styles.sectionText}>No ingredients available</Text>
+                  )}
                 </Accordion>
 
                 <Accordion
@@ -76,7 +111,11 @@ export function RecipeModal({ visible, onClose, onStartCooking, recipe }: Recipe
                   expanded={expandedSection === 'instructions'}
                   onPress={() => toggleSection('instructions')}
                 >
-                  <Text style={styles.sectionText}>Instructions here...</Text>
+                  {cleanedInstructions.map((instruction, index) => (
+                    <Text key={index} style={styles.instructionText}>
+                      • {instruction}
+                    </Text>
+                  ))}
                 </Accordion>
 
                 <Accordion
@@ -84,7 +123,7 @@ export function RecipeModal({ visible, onClose, onStartCooking, recipe }: Recipe
                   expanded={expandedSection === 'tips'}
                   onPress={() => toggleSection('tips')}
                 >
-                  {proTips.map((tip, index) => (
+                  {displayTips.map((tip, index) => (
                     <Text key={index} style={styles.tipText}>✓ {tip}</Text>
                   ))}
                 </Accordion>
@@ -149,7 +188,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   recipeTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: 'Satoshi-Black',
     color: '#000',
     marginBottom: 24,
@@ -165,6 +204,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Satoshi-Regular',
     color: '#333333',
     lineHeight: 24,
+  },
+  instructionText: {
+    fontSize: 16,
+    fontFamily: 'Satoshi-Regular',
+    color: '#333333',
+    marginBottom: 12,
+    lineHeight: 22,
   },
   tipText: {
     fontSize: 15,
@@ -189,5 +235,12 @@ const styles = StyleSheet.create({
   },
   startCookingButton: {
     height: 56,
+  },
+  ingredientText: {
+    fontSize: 16,
+    fontFamily: 'Satoshi-Regular',
+    color: '#333333',
+    marginBottom: 12,
+    lineHeight: 22,
   },
 }); 

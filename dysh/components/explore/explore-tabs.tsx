@@ -1,10 +1,33 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
-const tabs = ['Trending', '30-Min Meals', 'Chef’s Picks', 'Occasion'];
+const tabs = ['Daily', 'Trending', '30-Min Meals', 'Chef Picks', 'Occasion'];
 
-export function ExploreTabs() {
-  const [activeTab, setActiveTab] = React.useState(0);
+interface ExploreTabsProps {
+  onTabChange?: (category: string) => void;
+}
+
+export function ExploreTabs({ onTabChange }: ExploreTabsProps) {
+  const [activeTab, setActiveTab] = React.useState(2);
+
+  const categoryMap = {
+    0: 'daily',
+    1: 'trending',
+    2: 'thirty-min-meals',
+    3: 'chefs-pick',
+    4: 'occasion'
+  };
+
+  // Trigger initial category selection
+  React.useEffect(() => {
+    console.log('ExploreTabs: Setting initial category to thirty-min-meals');
+    onTabChange?.(categoryMap[2]); // Default to thirty-min-meals
+  }, []); // Remove onTabChange dependency to avoid multiple calls
+
+  const handleTabPress = (index: number) => {
+    setActiveTab(index);
+    onTabChange?.(categoryMap[index as keyof typeof categoryMap]);
+  };
 
   return (
     <ScrollView 
@@ -17,7 +40,7 @@ export function ExploreTabs() {
           <TouchableOpacity
             key={index}
             style={styles.tab}
-            onPress={() => setActiveTab(index)}
+            onPress={() => handleTabPress(index)}
           >
             <Text style={[styles.text, activeTab === index && styles.activeText]}>
               {tab}

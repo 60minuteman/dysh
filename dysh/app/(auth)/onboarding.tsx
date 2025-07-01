@@ -1,25 +1,18 @@
-import { StyleSheet, Text, View, Image, Alert, Platform } from 'react-native';
+import { StyleSheet, Text, View, Image, Alert, Platform, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SocialButton } from '../../components/SocialButton';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/FirebaseAuthContext';
+import { authService } from '../../lib/auth';
 
 export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const videoRef = useRef<Video>(null);
-  const { signInWithGoogle, user } = useAuth();
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      router.replace('/(tabs)');
-    }
-  }, [user]);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -27,32 +20,78 @@ export default function Onboarding() {
     }
   }, []);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      console.log('Attempting Google Sign In...');
-      const result = await signInWithGoogle();
-      console.log('Sign In completed:', result);
-    } catch (error) {
-      console.error('Google Sign In Error in Onboarding:', error);
-      Alert.alert(
-        'Sign In Error',
-        'Unable to sign in with Google. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Initialize auth service and check if user is already authenticated
+    const initializeAuth = async () => {
+      await authService.initialize();
+      const isAuthenticated = await authService.isAuthenticated();
+      
+      if (isAuthenticated) {
+        const user = await authService.getCurrentUser();
+        if (user?.hasCompletedOnboarding) {
+          router.replace('/(tabs)');
+        } else {
+          router.replace('/(auth)/testimonials');
+        }
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  // Commented out Google Sign-In for now - will enable when ready for Android
+  // const handleGoogleSignIn = async () => {
+  //   try {
+  //     setLoading(true);
+  //     console.log('Attempting Google Sign In...');
+      
+  //     const result = await authService.signInWithGoogle();
+      
+  //     if (result.user.onboarding_completed) {
+  //       router.replace('/(tabs)');
+  //     } else {
+  //       router.push('/(auth)/testimonials');
+  //     }
+  //   } catch (error: any) {
+  //     console.error('Google Sign In Error:', error);
+  //     Alert.alert(
+  //       'Sign In Error',
+  //       error.message || 'Unable to sign in with Google. Please try again.'
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleAppleSignIn = async () => {
     try {
-      // Handle Apple Sign In logic here
-      console.log('Apple Sign In');
-      // Navigate to dietary preferences
-      router.push('/(auth)/testimonials');
-    } catch (error) {
+      setAppleLoading(true);
+      console.log('Attempting Apple Sign In...');
+      
+      const result = await authService.signInWithApple();
+      
+      if (result.user.hasCompletedOnboarding) {
+        router.replace('/(tabs)');
+      } else {
+        router.push('/(auth)/testimonials');
+      }
+    } catch (error: any) {
       console.error('Apple Sign In Error:', error);
+      
+      // Don't show alert if user canceled
+      if (!error.message.includes('canceled')) {
+        Alert.alert(
+          'Sign In Error',
+          error.message || 'Unable to sign in with Apple. Please try again.'
+        );
+      }
+    } finally {
+      setAppleLoading(false);
     }
+  };
+
+  const handleExplorePress = () => {
+    router.push('/(auth)/paywall');
   };
 
   return (
@@ -95,17 +134,26 @@ export default function Onboarding() {
 
           {/* Auth Buttons */}
           <View style={styles.buttonContainer}>
-            {Platform.OS === 'ios' ? (
+            {Platform.OS === 'ios' && (
               <SocialButton
                 variant="apple"
                 onPress={handleAppleSignIn}
+                loading={appleLoading}
               />
-            ) : (
-              <SocialButton
-                variant="google"
-                onPress={handleGoogleSignIn}
-                loading={loading}
-              />
+            )}
+            {/* Commented out Google Sign-In for now - will enable when ready for Android */}
+            {/* <SocialButton
+              variant="google"
+              onPress={handleGoogleSignIn}
+              loading={loading}
+            /> */}
+            {__DEV__ && (
+              <TouchableOpacity 
+                style={styles.exploreButton}
+                onPress={handleExplorePress}
+              >
+                <Text style={styles.exploreButtonText}>Explore Recipes</Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -165,6 +213,18 @@ const styles = StyleSheet.create({
   buttonContainer: {
     gap: 12,
     marginBottom: -20,
+  },
+  exploreButton: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 64,
+    alignItems: 'center',
+  },
+  exploreButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Satoshi-Medium',
   },
   termsText: {
     color: '#000000',

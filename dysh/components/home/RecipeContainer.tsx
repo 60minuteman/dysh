@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { RecipeCard } from './RecipeCard';
 import { useRouter } from 'expo-router';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface Recipe {
   id: string;
@@ -14,10 +16,18 @@ interface Recipe {
 
 interface RecipeContainerProps {
   recipes: Recipe[];
+  isPro?: boolean;
+  onUpgrade?: () => void;
+  onRecipePress?: (recipe: Recipe) => void;
 }
 
-export function RecipeContainer({ recipes }: RecipeContainerProps) {
+export function RecipeContainer({ recipes, isPro = false, onUpgrade, onRecipePress }: RecipeContainerProps) {
   const router = useRouter();
+
+  // Calculate responsive card width
+  const cardWidth = screenWidth > 768 ? 320 : screenWidth * 0.8;
+  const gap = 16;
+  const snapToInterval = cardWidth + gap;
 
   return (
     <ScrollView
@@ -25,51 +35,23 @@ export function RecipeContainer({ recipes }: RecipeContainerProps) {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
       decelerationRate="fast"
-      snapToInterval={320 + 16} // card width + gap
+      snapToInterval={snapToInterval}
       snapToAlignment="start"
     >
-      {recipes.map((recipe) => (
-        <View key={recipe.id} style={styles.cardContainer}>
+      {recipes.map((recipe, index) => (
+        <View key={recipe.id} style={[styles.cardContainer, { width: cardWidth }]}>
           <RecipeCard
             title={recipe.title}
             duration={recipe.duration}
             calories={recipe.calories}
             rating={recipe.rating}
             image={recipe.image}
-            onPress={() => router.push('/recipe')}
+            onPress={() => onRecipePress ? onRecipePress(recipe) : router.push('/recipe')}
+            isLocked={!isPro && index > 0}
+            onUpgrade={onUpgrade}
           />
         </View>
       ))}
-      <View style={styles.cardContainer}>
-        <RecipeCard
-          title="Grilled Salmon"
-          duration="25 min"
-          calories="350 kcal"
-          rating="4.8"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
-      <View style={styles.cardContainer}>
-        <RecipeCard
-          title="Chicken Stir Fry"
-          duration="30 min" 
-          calories="400 kcal"
-          rating="4.6"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
-      <View style={styles.cardContainer}>
-        <RecipeCard
-          title="Vegetable Pasta"
-          duration="20 min"
-          calories="300 kcal"
-          rating="4.5"
-          image={require('../../assets/images/placeholder.png')}
-          onPress={() => router.push('/recipe')}
-        />
-      </View>
     </ScrollView>
   );
 }
@@ -80,6 +62,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   cardContainer: {
-    width: 350,
+    // width is now dynamically set inline
   },
 }); 

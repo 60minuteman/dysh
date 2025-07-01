@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, ImageSourcePropType, ImageBackground } from 'react-native';
+import { StyleSheet, Text, View, Image, ImageSourcePropType, ImageBackground, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface RecipePreviewCardProps {
@@ -7,8 +7,9 @@ interface RecipePreviewCardProps {
   time: string;
   calories: string;
   rating: string;
-  image: ImageSourcePropType;
+  image: ImageSourcePropType | { uri: string }; // Support both local and URI images
   countryFlag?: string;
+  onPress?: () => void;
 }
 
 export function RecipePreviewCard({ 
@@ -17,9 +18,19 @@ export function RecipePreviewCard({
   calories, 
   rating, 
   image,
-  countryFlag = '🇳🇬'
+  countryFlag = '🇳🇬',
+  onPress
 }: RecipePreviewCardProps) {
-  return (
+  // Format the stats
+  const formattedTime = time.replace('minutes', 'mins');
+  const formattedCalories = calories.includes('per serving') 
+    ? calories.replace('per serving', '').replace('calories', 'KCAL').trim()
+    : calories.replace('calories', 'KCAL');
+  const formattedRating = rating.includes('stars') 
+    ? rating.split(' ')[0] 
+    : rating;
+
+  const CardContent = () => (
     <View style={styles.recipeCard}>
       <ImageBackground 
         source={image} 
@@ -37,21 +48,31 @@ export function RecipePreviewCard({
           <View style={styles.recipeStats}>
             <View style={styles.statItem}>
               <Text style={styles.statIcon}>⏱️</Text>
-              <Text style={styles.statText}>{time}</Text>
+              <Text style={styles.statText}>{formattedTime}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statIcon}>🔥</Text>
-              <Text style={styles.statText}>{calories}</Text>
+              <Text style={styles.statText}>{formattedCalories}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statIcon}>⭐</Text>
-              <Text style={styles.statText}>{rating}</Text>
+              <Text style={styles.statText}>{formattedRating}</Text>
             </View>
           </View>
         </LinearGradient>
       </ImageBackground>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+        <CardContent />
+      </TouchableOpacity>
+    );
+  }
+
+  return <CardContent />;
 }
 
 const styles = StyleSheet.create({

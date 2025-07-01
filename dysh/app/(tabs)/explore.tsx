@@ -1,14 +1,24 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Image, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExploreTabs } from '../../components/explore/explore-tabs';
 import { RecipeStack, RecipeStackRef } from '../../components/explore/recipe-stack';
-import CardStack from 'react-native-card-stack-swiper';
+import { authService } from '../../lib/auth';
+import { useRouter } from 'expo-router';
 
 export default function Explore() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const stackRef = useRef<RecipeStackRef>(null);
+  const [selectedCategory, setSelectedCategory] = useState('thirty-min-meals');
+  const router = useRouter();
+
+  // Debug category changes
+  useEffect(() => {
+    console.log('Explore screen: selectedCategory changed to:', selectedCategory);
+  }, [selectedCategory]);
+
+  // Note: Explore screen allows guest browsing - no auth required
 
   const handleUndo = () => {
     stackRef.current?.goBackFromLeft();
@@ -27,11 +37,11 @@ export default function Explore() {
       </View>
 
       <View style={styles.tabsContainer}>
-        <ExploreTabs />
+        <ExploreTabs onTabChange={setSelectedCategory} />
       </View>
       
       <View style={{ height: height * 0.7, width: width }}>
-        <RecipeStack ref={stackRef} />
+        <RecipeStack ref={stackRef} category={selectedCategory} />
       </View>
     </View>
   );

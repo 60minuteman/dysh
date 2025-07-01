@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../../components/Header';
 import { Selector } from '../../components/Selector';
@@ -9,7 +9,19 @@ import { Button } from '../../components/Button';
 export default function Servings() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
   const [selectedServing, setSelectedServing] = useState<'2' | '4' | '6'>('2');
+
+  // Parse ingredients from URL parameters
+  const ingredients = params.ingredients ? JSON.parse(params.ingredients as string) : [];
+
+  const handleGetRecipe = () => {
+    // Pass both ingredients and servings to recipe loading
+    const urlParams = new URLSearchParams();
+    urlParams.set('ingredients', JSON.stringify(ingredients));
+    urlParams.set('servings', selectedServing);
+    router.push(`/recipe-loading?${urlParams.toString()}`);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -45,7 +57,7 @@ export default function Servings() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <Button 
           label="Get Recipe"
-          onPress={() => router.push('/recipe-loading')}
+          onPress={handleGetRecipe}
         />
       </View>
     </View>

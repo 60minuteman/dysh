@@ -1,127 +1,131 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 interface CelebrationCardProps {
   title: string;
   description: string;
   onShare?: () => void;
-  onRate?: (rating: number) => void;
   onFavorite?: () => void;
+  onEndCooking?: () => void;
 }
 
 export function CelebrationCard({
   title,
   description,
   onShare,
-  onRate,
   onFavorite,
+  onEndCooking,
 }: CelebrationCardProps) {
+  const router = useRouter();
+
+  const handleEndCooking = () => {
+    router.push('/(tabs)');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
-      </View>
-
-      <View style={styles.ratingContainer}>
-        <Text style={styles.ratingText}>Rate this recipe</Text>
-        <View style={styles.starsContainer}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <TouchableOpacity 
-              key={star} 
-              onPress={() => onRate && onRate(star)}
-              style={styles.starButton}
-            >
-              <Text style={styles.starIcon}>★</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Share your dish with us @dailydysh</Text>
         </View>
       </View>
 
       <View style={styles.actionsContainer}>
         <TouchableOpacity style={styles.favoriteButton} onPress={onFavorite}>
-          <Text style={styles.favoriteIcon}>♥</Text>
+          <Text style={styles.favoriteIcon}>🖤</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+          <Text style={styles.shareIcon}>🔗</Text>
           <Text style={styles.shareButtonText}>Share Recipe</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.endCookingButton} onPress={handleEndCooking}>
+        <Text style={styles.endCookingButtonText}>End Cooking</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#D4EDC5',
     borderRadius: 24,
     padding: 24,
     marginVertical: 8,
     width: '100%',
+    alignItems: 'center',
   },
   contentContainer: {
-    marginBottom: 24,
+    marginBottom: 32,
+    width: '100%',
+  },
+  titleContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    width: '100%',
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontFamily: 'Satoshi-Bold',
     color: '#000',
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    fontFamily: 'Satoshi-Regular',
-    color: '#555',
-    lineHeight: 22,
-  },
-  ratingContainer: {
-    marginBottom: 24,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontFamily: 'Satoshi-Regular',
-    color: '#999',
-    marginBottom: 8,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-  },
-  starButton: {
-    marginRight: 8,
-  },
-  starIcon: {
-    fontSize: 24,
-    color: '#DDDDDD',
+    textAlign: 'left',
+    lineHeight: 30,
   },
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 24,
+    gap: 16,
+    width: '100%',
   },
   favoriteButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: 'rgba(0, 0, 0, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    backgroundColor: 'transparent',
   },
   favoriteIcon: {
-    fontSize: 22,
-    color: '#333',
+    fontSize: 24,
   },
   shareButton: {
-    backgroundColor: '#F2FFE6',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
     flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 28,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'transparent',
+  },
+  shareIcon: {
+    fontSize: 18,
   },
   shareButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Satoshi-Bold',
-    color: '#333',
+    color: '#000',
   },
-}); 
+  endCookingButton: {
+    backgroundColor: '#64D61D',
+    paddingVertical: 18,
+    paddingHorizontal: 48,
+    borderRadius: 32,
+    width: '100%',
+    alignItems: 'center',
+  },
+  endCookingButtonText: {
+    fontSize: 18,
+    fontFamily: 'Satoshi-Bold',
+    color: '#FFFFFF',
+  },
+});

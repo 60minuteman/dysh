@@ -15,9 +15,11 @@ interface RecipePreviewItem {
 interface RecipePreviewContainerProps {
   recipes: RecipePreviewItem[];
   countryFlag?: string;
+  onRecipePress?: (index: number) => void;
+  onScroll?: (event: any) => void;
 }
 
-export function RecipePreviewContainer({ recipes, countryFlag }: RecipePreviewContainerProps) {
+export function RecipePreviewContainer({ recipes, countryFlag, onRecipePress, onScroll }: RecipePreviewContainerProps) {
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = screenWidth - 60; // Increased width by reducing the subtraction from 80 to 60
 
@@ -30,6 +32,8 @@ export function RecipePreviewContainer({ recipes, countryFlag }: RecipePreviewCo
       snapToInterval={cardWidth + 16} // Add gap to snap interval
       snapToAlignment="start"
       pagingEnabled={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {recipes.map((recipe, index) => (
         <View key={recipe.id || index} style={[styles.cardWrapper, { width: cardWidth }]}>
@@ -40,6 +44,7 @@ export function RecipePreviewContainer({ recipes, countryFlag }: RecipePreviewCo
             rating={recipe.rating}
             image={recipe.image}
             countryFlag={recipe.countryFlag || countryFlag}
+            onPress={() => onRecipePress?.(index)}
           />
         </View>
       ))}
