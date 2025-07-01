@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   containerSelected: {
-    backgroundColor: '#F1ECC1',
+    backgroundColor: '#000',
   },
   iconContainer: {
     width: 47,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   labelSelected: {
-    color: '#000000',
+    color: '#fff',
   },
   subText: {
     fontSize: 13,
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   subTextSelected: {
-    color: '#000000',
+    color: '#fff',
   },
 });
