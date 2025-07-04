@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import { SearchInput } from '../../components/SearchInput';
 import { CookbookRecipeCard } from '../../components/cookbook/cookbook-recipe-card';
 import { CookbookTabs } from '../../components/cookbook/cookbook-tabs';
 import { useCookbookRecipes } from '../../hooks/useApiQueries';
+import Purchases from 'react-native-purchases';
 
 const RECIPES = [
   {
@@ -33,11 +35,48 @@ const RECIPES = [
   },
 ];
 
-export default function Cookbook() {
+const Preview = () => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
+  const [offerings, setOfferings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOfferings = async () => {
+      try {
+        const offeringsResult:any = await Purchases.getOfferings();
+        setOfferings(offeringsResult?.current);
+      } catch (error) {
+        console.warn('Error fetching offerings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOfferings();
+  }, []);
+
+  const handlePurchase = async () => {
+    if (!offerings || offerings.availablePackages.length === 0) {
+      Alert.alert('No available packages');
+      return;
+    }
+
+    const packageToBuy = offerings.availablePackages[0];
+
+    try {
+      const purchaseInfo = await Purchases.purchasePackage(packageToBuy);
+      console.log('Purchase successful:', purchaseInfo);
+      Alert.alert('Purchase Successful', JSON.stringify(purchaseInfo));
+    } catch (error:any) {
+      if (!error.userCancelled) {
+        console.warn('Purchase error:', error);
+        Alert.alert('Purchase Failed', error.message);
+      }
+    }
+  };
 
   // Use React Query hook for cookbook recipes
   const {
@@ -83,15 +122,14 @@ export default function Cookbook() {
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <View style={styles.loadingContainer}>
+          <TouchableOpacity style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading cookbook recipes...</Text>
-          </View>
+          </TouchableOpacity>
         ) : isError ? (
           <View style={styles.errorContainer}>
-            
-              <Text style={styles.errorText}>
-                Failed to load recipes. Using saved recipes.
-              </Text>
+            <Text style={styles.errorText}>
+              Failed to load recipes. Using saved recipes.
+            </Text>
           </View>
         ) : null}
 
@@ -109,9 +147,7 @@ export default function Cookbook() {
             style={styles.proLine}
             resizeMode='contain'
           />
-        </View>
-
-        <TouchableOpacity
+          <TouchableOpacity
           style={{
             backgroundColor: '#000000',
             padding: 10,
@@ -119,14 +155,17 @@ export default function Cookbook() {
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          onPress={() => router.push('/(auth)/Preview' as any)}
+          onPress={handlePurchase}
         >
           <Text style={{ color: '#FFFFFF' }}>Buy Pro</Text>
         </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
-}
+};
+
+export default Preview;
 
 const styles = StyleSheet.create({
   container: {

@@ -1,10 +1,18 @@
-import { StyleSheet, Text, View, Image, Alert, Platform, TouchableOpacity } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SocialButton } from '../../components/SocialButton';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
-import { useEffect, useRef, useState } from 'react';
 import { authService } from '../../lib/auth';
 
 export default function Onboarding() {
@@ -25,7 +33,7 @@ export default function Onboarding() {
     const initializeAuth = async () => {
       await authService.initialize();
       const isAuthenticated = await authService.isAuthenticated();
-      
+
       if (isAuthenticated) {
         const user = await authService.getCurrentUser();
         if (user?.hasCompletedOnboarding) {
@@ -44,9 +52,9 @@ export default function Onboarding() {
   //   try {
   //     setLoading(true);
   //     console.log('Attempting Google Sign In...');
-      
+
   //     const result = await authService.signInWithGoogle();
-      
+
   //     if (result.user.onboarding_completed) {
   //       router.replace('/(tabs)');
   //     } else {
@@ -67,9 +75,9 @@ export default function Onboarding() {
     try {
       setAppleLoading(true);
       console.log('Attempting Apple Sign In...');
-      
+
       const result = await authService.signInWithApple();
-      
+
       if (result.user.hasCompletedOnboarding) {
         router.replace('/(tabs)');
       } else {
@@ -77,7 +85,7 @@ export default function Onboarding() {
       }
     } catch (error: any) {
       console.error('Apple Sign In Error:', error);
-      
+
       // Don't show alert if user canceled
       if (!error.message.includes('canceled')) {
         Alert.alert(
@@ -92,14 +100,14 @@ export default function Onboarding() {
 
   const handleExplorePress = () => {
     //router.push('/(auth)/paywall');
-    router.push('/ingredients');
-
+    // router.push('/ingredients');
+    router.push('/(tabs)/explore');
   };
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      
+
       {/* Background Video with Gradient Overlay */}
       <Video
         ref={videoRef}
@@ -111,34 +119,48 @@ export default function Onboarding() {
         isMuted
       />
       <LinearGradient
-        colors={['rgba(0, 0, 0, 0.2)', 'rgba(0, 0, 0, 0.5)', 'rgba(255, 255, 255, 0.92)', '#FFFFFF']}
+        colors={[
+          'rgba(0, 0, 0, 0.2)',
+          'rgba(0, 0, 0, 0.5)',
+          'rgba(255, 255, 255, 0.92)',
+          '#FFFFFF',
+        ]}
         locations={[0, 0.2, 0.6, 0.9]}
         style={StyleSheet.absoluteFillObject}
       />
 
       {/* Content Container */}
-      <View style={[styles.contentContainer, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
+      <View
+        style={[
+          styles.contentContainer,
+          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+        ]}
+      >
         {/* Logo Container */}
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/logo/logo.png')}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode='contain'
           />
         </View>
 
         <View style={styles.bottomContent}>
           {/* Text Content */}
           <View style={styles.textContainer}>
-            <Text style={styles.title}>World Class Meals,{'\n'}Home Ingredients</Text>
-            <Text style={styles.subtitle}>Get recipes from around the world based on your stash.</Text>
+            <Text style={styles.title}>
+              World Class Meals,{'\n'}Home Ingredients
+            </Text>
+            <Text style={styles.subtitle}>
+              Get recipes from around the world based on your stash.
+            </Text>
           </View>
 
           {/* Auth Buttons */}
           <View style={styles.buttonContainer}>
             {Platform.OS === 'ios' && (
               <SocialButton
-                variant="apple"
+                variant='apple'
                 onPress={handleAppleSignIn}
                 loading={appleLoading}
               />
@@ -150,7 +172,7 @@ export default function Onboarding() {
               loading={loading}
             /> */}
             {__DEV__ && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.exploreButton}
                 onPress={handleExplorePress}
               >
@@ -162,7 +184,8 @@ export default function Onboarding() {
           {/* Terms Text */}
           <Text style={styles.termsText}>
             By continuing, you accept our{' '}
-            <Text style={styles.termsLink}>Terms</Text> & <Text style={styles.termsLink}>Privacy Policy</Text>
+            <Text style={styles.termsLink}>Terms</Text> &{' '}
+            <Text style={styles.termsLink}>Privacy Policy</Text>
           </Text>
         </View>
       </View>

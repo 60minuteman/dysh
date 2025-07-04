@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface CookbookRecipeCardProps {
   title: string;
@@ -9,28 +9,20 @@ interface CookbookRecipeCardProps {
   onPress?: () => void;
 }
 
-export function CookbookRecipeCard({ 
+export function CookbookRecipeCard({
   title,
   duration,
   calories,
   image,
-  onPress
+  onPress,
 }: CookbookRecipeCardProps) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.container}>
       <View style={styles.imageContainer}>
-        <Image 
-          source={image}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <Image source={image} style={styles.image} resizeMode='cover' />
       </View>
       <View style={styles.content}>
-        <Text 
-          style={styles.title} 
-          numberOfLines={2}
-          ellipsizeMode="tail"
-        >
+        <Text style={styles.title} numberOfLines={2} ellipsizeMode='tail'>
           {title}
         </Text>
         <View style={styles.stats}>
@@ -99,4 +91,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Satoshi-Medium',
     color: '#666666',
   },
-}); 
+});

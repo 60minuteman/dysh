@@ -1,13 +1,18 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from '@react-navigation/native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Updates from 'expo-updates';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { Platform, useColorScheme } from 'react-native';
+import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -65,6 +70,20 @@ export default function RootLayout() {
     }
   }, [colorScheme]);
 
+  useEffect(() => {
+    Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
+
+    if (Platform.OS === 'ios') {
+      Purchases.configure({ apiKey: 'appl_FSycrwLmErAVzwiVhonzRtghGNm' });
+    }
+    // else if (Platform.OS === 'android') {
+    //    Purchases.configure({apiKey: 'goog_ZzqYZzqYZzqYZzqYZzqYZzqY'});
+
+    //   // OR: if building for Amazon, be sure to follow the installation instructions then:
+    //   //  Purchases.configure({ apiKey: 'amzn_ZzqYZzqYZzqYZzqYZzqYZzqY', useAmazon: true });
+    // }
+  }, []);
+
   // Check for updates on app start (only in production builds)
   useEffect(() => {
     const checkForUpdates = async () => {
@@ -72,7 +91,7 @@ export default function RootLayout() {
         try {
           console.log('🔄 Checking for updates...');
           const update = await Updates.checkForUpdateAsync();
-          
+
           if (update.isAvailable) {
             console.log('📦 Update available, downloading...');
             await Updates.fetchUpdateAsync();
@@ -97,18 +116,24 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ 
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: '#F9F9F9'
-          }
-        }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="splash" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: '#F9F9F9',
+            },
+          }}
+        >
+          <Stack.Screen name='index' />
+          <Stack.Screen name='splash' />
+          <Stack.Screen name='(auth)' />
+          <Stack.Screen name='(tabs)' />
         </Stack>
-        <StatusBar style="dark" backgroundColor="#F9F9F9" />
+        <StatusBar
+          translucent={true}
+          backgroundColor='transparent'
+          style='dark'
+        />
       </ThemeProvider>
     </QueryClientProvider>
   );
