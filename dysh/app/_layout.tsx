@@ -74,7 +74,7 @@ export default function RootLayout() {
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
 
     if (Platform.OS === 'ios') {
-      Purchases.configure({ apiKey: 'appl_FSycrwLmErAVzwiVhonzRtghGNm' });
+      Purchases.configure({ apiKey: '' });
     }
     // else if (Platform.OS === 'android') {
     //    Purchases.configure({apiKey: 'goog_ZzqYZzqYZzqYZzqYZzqYZzqY'});
